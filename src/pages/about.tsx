@@ -1,13 +1,13 @@
 // src/pages/about.tsx
 import Link from 'next/link'
-import { useAppSelector, useAppDispatch } from '@/store/hook'  
+import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
 import {
   increment,
   decrement,
   incrementByAmount,
   reset,
   setTitle
-} from '../store/counterSlice'
+} from '../shared/store/counterSlice'
 import { useState } from 'react'
 
 export default function About() {

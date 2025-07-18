@@ -28,9 +28,6 @@ export default function Home() {
               <Link href="/about" className="btn btn-primary w-full">
                 Go to About Page
               </Link>
-              <Link href="/settings" className="btn btn-success w-full">
-                Go to Settings
-              </Link>
             </div>
           </div>
         </div>
