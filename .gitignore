@@ -15,6 +15,7 @@
 
 # Next.js build output
 /.next/
+# Next.js static export output (you load Electron from here)
 /out/
 
 # production
