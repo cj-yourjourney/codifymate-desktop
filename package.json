@@ -4,7 +4,8 @@
   "private": true,
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:next\" \"npm run dev:electron\"",
+    "dev": "concurrently \"npm run dev:redux-devtools\" \"npm run dev:next\" \"npm run dev:electron\"",
+    "dev:redux-devtools": "redux-devtools --hostname localhost --port 9000",
     "dev:next": "next dev --turbo",
     "dev:electron": "wait-on http://localhost:3000 && npm run build:electron && cross-env NODE_ENV=development electron .",
     "build": "next build && npm run build:electron",
@@ -41,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
     "electron-squirrel-startup": "^1.0.1",
     "next": "15.4.1",
     "react": "19.1.0",
@@ -48,6 +50,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@redux-devtools/cli": "^3.0.4",
+    "@redux-devtools/remote": "^0.9.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.8",
     "@types/react": "^19",
