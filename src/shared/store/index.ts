@@ -1,6 +1,6 @@
 // src/shared/store/index.ts
 import { configureStore } from '@reduxjs/toolkit'
-import counterReducer from './counterSlice'
+import counterReducer from './counterSlice' // Correct path: same directory
 import { composeWithDevTools } from '@redux-devtools/remote'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -21,22 +21,17 @@ const composeEnhancers = isDevelopment
   : undefined
 
 // Create store with conditional configuration
-export const store =
-  isDevelopment && composeEnhancers
-    ? configureStore({
-        reducer: {
-          counter: counterReducer
-        },
-        devTools: false,
-        // @ts-expect-error - Ignore TypeScript error for enhancers
-        enhancers: [composeEnhancers]
-      })
-    : configureStore({
-        reducer: {
-          counter: counterReducer
-        },
-        devTools: false
-      })
+export const store = configureStore({
+  reducer: {
+    counter: counterReducer
+  },
+  devTools: false,
+  // Use enhancers callback function for Redux Toolkit compatibility
+  // enhancers: (getDefaultEnhancers) =>
+  //   process.env.NODE_ENV !== 'production'
+  //     ? getDefaultEnhancers().concat(composeEnhancers())
+  //     : getDefaultEnhancers()
+})
 
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
