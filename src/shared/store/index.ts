@@ -27,10 +27,10 @@ export const store = configureStore({
   },
   devTools: false,
   // Use enhancers callback function for Redux Toolkit compatibility
-  // enhancers: (getDefaultEnhancers) =>
-  //   process.env.NODE_ENV !== 'production'
-  //     ? getDefaultEnhancers().concat(composeEnhancers())
-  //     : getDefaultEnhancers()
+  enhancers: (getDefaultEnhancers) =>
+    process.env.NODE_ENV !== 'production'
+      ? getDefaultEnhancers().concat(composeEnhancers())
+      : getDefaultEnhancers()
 })
 
 export type RootState = ReturnType<typeof store.getState>

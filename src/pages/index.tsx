@@ -29,6 +29,11 @@ export default function Home() {
                 Go to About Page
               </Link>
             </div>
+            <div className="flex flex-col gap-4 mt-4 w-full">
+              <Link href="/main" className="btn btn-primary w-full">
+                Go to Main Page
+              </Link>
+            </div>
           </div>
         </div>
       </div>
