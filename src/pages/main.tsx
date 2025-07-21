@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
-import Step1PromptEnhancement from '../features/aiCodeAssistant/promptEnhancement/PromptEnhancement'
-import Step2Clarification from '../features/aiCodeAssistant/clarification/Clarification'
-import Step3GeneratedCode from '../features/aiCodeAssistant/generatedCode/GeneratedCode'
+import {
+  Step1PromptRefinement,
+  Step2PromptClarification,
+  Step3CodeGeneration
+} from '@/features/aiCodeAssistant/steps'
+
 
 interface Question {
   id: string
@@ -30,10 +33,11 @@ const AICodeAssistant: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1)
 
   const stepTitles = [
-    'Prompt Enhancement',
-    'Clarification & File Analysis',
-    'Generated Code & Refinement'
+    'Refine Prompt',
+    'Clarify & Select Files',
+    'Generate & Refine Code'
   ]
+
   const stepColors = ['primary', 'success', 'secondary']
 
   // Placeholder Data (mocked for now)
@@ -173,7 +177,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
     switch (currentStep) {
       case 1:
         return (
-          <Step1PromptEnhancement
+          <Step1PromptRefinement
             userPrompt={userPrompt}
             selectedFolder={selectedFolder}
             setUserPrompt={setUserPrompt}
@@ -182,14 +186,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
         )
       case 2:
         return (
-          <Step2Clarification
+          <Step2PromptClarification
             questions={questions}
             fileReferences={fileReferences}
           />
         )
       case 3:
         return (
-          <Step3GeneratedCode
+          <Step3CodeGeneration
             codeResponse={codeResponse}
             refinePrompt={refinePrompt}
             setRefinePrompt={setRefinePrompt}

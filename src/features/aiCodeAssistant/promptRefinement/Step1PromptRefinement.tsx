@@ -7,7 +7,7 @@ interface Step1Props {
   setSelectedFolder: (value: string) => void
 }
 
-const Step1PromptEnhancement: React.FC<Step1Props> = ({
+const Step1PromptRefinement: React.FC<Step1Props> = ({
   userPrompt,
   selectedFolder,
   setUserPrompt,
@@ -48,4 +48,4 @@ const Step1PromptEnhancement: React.FC<Step1Props> = ({
   )
 }
 
-export default Step1PromptEnhancement
+export default Step1PromptRefinement

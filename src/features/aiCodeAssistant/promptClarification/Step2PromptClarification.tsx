@@ -16,7 +16,7 @@ interface Step2Props {
   fileReferences: FileReference[]
 }
 
-const Step2Clarification: React.FC<Step2Props> = ({
+const Step2PromptClarification: React.FC<Step2Props> = ({
   questions,
   fileReferences
 }) => {
@@ -66,4 +66,4 @@ const Step2Clarification: React.FC<Step2Props> = ({
   )
 }
 
-export default Step2Clarification
+export default Step2PromptClarification

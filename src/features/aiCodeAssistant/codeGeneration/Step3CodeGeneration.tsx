@@ -12,7 +12,7 @@ interface Step3Props {
   setRefinePrompt: (value: string) => void
 }
 
-const Step3GeneratedCode: React.FC<Step3Props> = ({
+const Step3CodeGeneration: React.FC<Step3Props> = ({
   codeResponse,
   refinePrompt,
   setRefinePrompt
@@ -122,4 +122,4 @@ const Step3GeneratedCode: React.FC<Step3Props> = ({
   )
 }
 
-export default Step3GeneratedCode
+export default Step3CodeGeneration
