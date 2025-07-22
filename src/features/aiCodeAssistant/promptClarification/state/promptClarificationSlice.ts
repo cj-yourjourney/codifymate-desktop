@@ -32,17 +32,23 @@ interface QuestionAnswer {
   answer: string
 }
 
+interface FileWithContent {
+  filePath: string
+  content: string
+}
+
 interface PromptClarificationState {
   clarifyingQuestions: string[]
   clarifyingQuestionsWithAnswers: QuestionAnswer[]
   relevantFiles: string[]
-  selectedRelevantFiles: string[]
-  manuallyAddedFiles: string[]
+  selectedRelevantFiles: FileWithContent[]
+  manuallyAddedFiles: FileWithContent[]
   additionalNotes: string
   projectStructure: ProjectStructure | null
   workflowMessages: WorkflowMessage[]
   loading: boolean
   error: string | null
+  fileLoading: boolean
 }
 
 const initialState: PromptClarificationState = {
@@ -55,7 +61,8 @@ const initialState: PromptClarificationState = {
   projectStructure: null,
   workflowMessages: [],
   loading: false,
-  error: null
+  error: null,
+  fileLoading: false
 }
 
 // Async thunk to call the refine prompt API
@@ -80,6 +87,18 @@ export const refinePrompt = createAsyncThunk(
   }
 )
 
+// Async thunk to read file content
+export const readFileContent = createAsyncThunk(
+  'promptClarification/readFileContent',
+  async (filePath: string) => {
+    if (window.electronAPI?.readFileContent) {
+      const content = await window.electronAPI.readFileContent(filePath)
+      return { filePath, content }
+    }
+    throw new Error('File reading not available')
+  }
+)
+
 const promptClarificationSlice = createSlice({
   name: 'promptClarification',
   initialState,
@@ -87,30 +106,64 @@ const promptClarificationSlice = createSlice({
     resetClarificationState: () => initialState,
     updateQuestionAnswer: (
       state,
-      action: PayloadAction<{ index: number; answer: string }>
+      action: PayloadAction<{ question: string; answer: string }>
     ) => {
-      const { index, answer } = action.payload
-      if (state.clarifyingQuestionsWithAnswers[index]) {
-        state.clarifyingQuestionsWithAnswers[index].answer = answer
+      const { question, answer } = action.payload
+
+      // Find existing question-answer pair
+      const existingIndex = state.clarifyingQuestionsWithAnswers.findIndex(
+        (qa) => qa.question === question
+      )
+
+      if (answer.trim()) {
+        // If answer is not empty, add or update the question-answer pair
+        if (existingIndex !== -1) {
+          state.clarifyingQuestionsWithAnswers[existingIndex].answer = answer
+        } else {
+          state.clarifyingQuestionsWithAnswers.push({ question, answer })
+        }
+      } else {
+        // If answer is empty, remove the question-answer pair if it exists
+        if (existingIndex !== -1) {
+          state.clarifyingQuestionsWithAnswers.splice(existingIndex, 1)
+        }
       }
     },
     setAdditionalNotes: (state, action: PayloadAction<string>) => {
       state.additionalNotes = action.payload
     },
-    addManualFile: (state, action: PayloadAction<string>) => {
-      if (!state.manuallyAddedFiles.includes(action.payload)) {
+    addManualFile: (state, action: PayloadAction<FileWithContent>) => {
+      const existingIndex = state.manuallyAddedFiles.findIndex(
+        (file) => file.filePath === action.payload.filePath
+      )
+      if (existingIndex === -1) {
         state.manuallyAddedFiles.push(action.payload)
       }
     },
     removeManualFile: (state, action: PayloadAction<string>) => {
       state.manuallyAddedFiles = state.manuallyAddedFiles.filter(
-        (file) => file !== action.payload
+        (file) => file.filePath !== action.payload
       )
     },
-    setSelectedRelevantFiles: (state, action: PayloadAction<string[]>) => {
-      // This will be used to track which relevant files are selected
-      // We'll store selected files separately from the original relevant files list
-      state.selectedRelevantFiles = action.payload
+    toggleRelevantFile: (
+      state,
+      action: PayloadAction<{ filePath: string; content?: string }>
+    ) => {
+      const { filePath, content } = action.payload
+      const existingIndex = state.selectedRelevantFiles.findIndex(
+        (file) => file.filePath === filePath
+      )
+
+      if (existingIndex !== -1) {
+        // File is already selected, remove it
+        state.selectedRelevantFiles.splice(existingIndex, 1)
+      } else if (content !== undefined) {
+        // File is not selected and we have content, add it
+        state.selectedRelevantFiles.push({ filePath, content })
+      }
+    },
+    setFileLoading: (state, action: PayloadAction<boolean>) => {
+      state.fileLoading = action.payload
     }
   },
   extraReducers: (builder) => {
@@ -123,15 +176,11 @@ const promptClarificationSlice = createSlice({
         state.loading = false
         if (action.payload.success) {
           state.clarifyingQuestions = action.payload.data.clarifying_questions
-          // Initialize question-answer pairs
-          state.clarifyingQuestionsWithAnswers =
-            action.payload.data.clarifying_questions.map((question) => ({
-              question,
-              answer: ''
-            }))
+          // Reset question-answer pairs when new questions come in
+          state.clarifyingQuestionsWithAnswers = []
           state.relevantFiles = action.payload.data.relevant_files
-          // Initialize all relevant files as selected by default
-          state.selectedRelevantFiles = action.payload.data.relevant_files
+          // Reset selected files when new relevant files come in
+          state.selectedRelevantFiles = []
           state.projectStructure = action.payload.data.project_structure
           state.workflowMessages = action.payload.data.workflow_messages
         }
@@ -139,6 +188,17 @@ const promptClarificationSlice = createSlice({
       .addCase(refinePrompt.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message || 'Failed to refine prompt'
+      })
+      .addCase(readFileContent.pending, (state) => {
+        state.fileLoading = true
+      })
+      .addCase(readFileContent.fulfilled, (state, action) => {
+        state.fileLoading = false
+        // This will be handled by the component directly
+      })
+      .addCase(readFileContent.rejected, (state, action) => {
+        state.fileLoading = false
+        state.error = action.error.message || 'Failed to read file content'
       })
   }
 })
@@ -149,7 +209,8 @@ export const {
   setAdditionalNotes,
   addManualFile,
   removeManualFile,
-  setSelectedRelevantFiles
+  toggleRelevantFile,
+  setFileLoading
 } = promptClarificationSlice.actions
 
 export default promptClarificationSlice.reducer

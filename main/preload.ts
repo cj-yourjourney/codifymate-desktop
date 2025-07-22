@@ -6,5 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   selectFiles: () => ipcRenderer.invoke('select-files'),
   getProjectFiles: (folderPath: string) =>
-    ipcRenderer.invoke('get-project-files', folderPath)
+    ipcRenderer.invoke('get-project-files', folderPath),
+  readFileContent: (filePath: string) =>
+    ipcRenderer.invoke('read-file-content', filePath)
 })

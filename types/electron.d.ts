@@ -4,6 +4,7 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<string[]>
   getProjectFiles: (folderPath: string) => Promise<string[]>
+  readFileContent: (filePath: string) => Promise<string>
 }
 
 declare global {

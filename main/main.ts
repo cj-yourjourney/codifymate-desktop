@@ -130,7 +130,7 @@ ipcMain.handle('select-folder', async () => {
   return null
 })
 
-// New handler for selecting individual files
+// Updated handler for selecting individual files - returns absolute paths
 ipcMain.handle('select-files', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
@@ -170,10 +170,37 @@ ipcMain.handle('select-files', async () => {
   })
 
   if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths
+    // Return absolute paths
+    return result.filePaths.map((filePath) => path.resolve(filePath))
   }
 
   return []
+})
+
+// New handler to read file content
+ipcMain.handle('read-file-content', async (event, filePath: string) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) {
+      throw new Error('File does not exist')
+    }
+
+    const stat = fs.statSync(filePath)
+    if (!stat.isFile()) {
+      throw new Error('Path is not a file')
+    }
+
+    // Check file size to prevent reading very large files
+    const maxFileSize = 10 * 1024 * 1024 // 10MB limit
+    if (stat.size > maxFileSize) {
+      throw new Error('File is too large to read (max 10MB)')
+    }
+
+    const content = fs.readFileSync(filePath, 'utf8')
+    return content
+  } catch (error) {
+    console.error('Error reading file:', error)
+    throw error
+  }
 })
 
 ipcMain.handle('get-project-files', async (event, folderPath: string) => {
@@ -188,7 +215,8 @@ ipcMain.handle('get-project-files', async (event, folderPath: string) => {
     }
 
     const filePaths = getAllFilePaths(folderPath)
-    return filePaths
+    // Return absolute paths
+    return filePaths.map((filePath) => path.resolve(filePath))
   } catch (error) {
     console.error('Error getting project files:', error)
     throw error
