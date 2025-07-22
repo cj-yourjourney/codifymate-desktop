@@ -36,6 +36,7 @@ interface PromptClarificationState {
   clarifyingQuestions: string[]
   clarifyingQuestionsWithAnswers: QuestionAnswer[]
   relevantFiles: string[]
+  selectedRelevantFiles: string[]
   manuallyAddedFiles: string[]
   additionalNotes: string
   projectStructure: ProjectStructure | null
@@ -48,6 +49,7 @@ const initialState: PromptClarificationState = {
   clarifyingQuestions: [],
   clarifyingQuestionsWithAnswers: [],
   relevantFiles: [],
+  selectedRelevantFiles: [],
   manuallyAddedFiles: [],
   additionalNotes: '',
   projectStructure: null,
@@ -105,14 +107,10 @@ const promptClarificationSlice = createSlice({
         (file) => file !== action.payload
       )
     },
-    toggleRelevantFile: (state, action: PayloadAction<string>) => {
-      const filePath = action.payload
-      const index = state.relevantFiles.indexOf(filePath)
-      if (index > -1) {
-        state.relevantFiles.splice(index, 1)
-      } else {
-        state.relevantFiles.push(filePath)
-      }
+    setSelectedRelevantFiles: (state, action: PayloadAction<string[]>) => {
+      // This will be used to track which relevant files are selected
+      // We'll store selected files separately from the original relevant files list
+      state.selectedRelevantFiles = action.payload
     }
   },
   extraReducers: (builder) => {
@@ -132,6 +130,8 @@ const promptClarificationSlice = createSlice({
               answer: ''
             }))
           state.relevantFiles = action.payload.data.relevant_files
+          // Initialize all relevant files as selected by default
+          state.selectedRelevantFiles = action.payload.data.relevant_files
           state.projectStructure = action.payload.data.project_structure
           state.workflowMessages = action.payload.data.workflow_messages
         }
@@ -149,7 +149,7 @@ export const {
   setAdditionalNotes,
   addManualFile,
   removeManualFile,
-  toggleRelevantFile
+  setSelectedRelevantFiles
 } = promptClarificationSlice.actions
 
 export default promptClarificationSlice.reducer

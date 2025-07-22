@@ -130,6 +130,52 @@ ipcMain.handle('select-folder', async () => {
   return null
 })
 
+// New handler for selecting individual files
+ipcMain.handle('select-files', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      {
+        name: 'Code Files',
+        extensions: [
+          'js',
+          'ts',
+          'jsx',
+          'tsx',
+          'py',
+          'java',
+          'cpp',
+          'c',
+          'h',
+          'css',
+          'scss',
+          'html',
+          'vue',
+          'php',
+          'rb',
+          'go',
+          'rs',
+          'swift',
+          'kt',
+          'dart',
+          'json',
+          'yml',
+          'yaml',
+          'xml',
+          'sql'
+        ]
+      },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths
+  }
+
+  return []
+})
+
 ipcMain.handle('get-project-files', async (event, folderPath: string) => {
   try {
     if (!folderPath || !fs.existsSync(folderPath)) {

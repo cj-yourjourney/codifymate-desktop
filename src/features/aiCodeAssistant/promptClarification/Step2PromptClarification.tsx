@@ -1,30 +1,33 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
 import {
   updateQuestionAnswer,
   setAdditionalNotes,
   addManualFile,
   removeManualFile,
-  toggleRelevantFile
+  setSelectedRelevantFiles
 } from './state/promptClarificationSlice'
-
-
 
 const Step2PromptClarification: React.FC = () => {
   const dispatch = useAppDispatch()
   const {
     clarifyingQuestionsWithAnswers,
     relevantFiles,
+    selectedRelevantFiles,
     manuallyAddedFiles,
     additionalNotes,
     loading,
     error
   } = useAppSelector((state) => state.promptClarification)
 
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(
-    new Set(relevantFiles)
-  )
   const [showFileSelector, setShowFileSelector] = useState(false)
+
+  // Initialize selected files when component mounts or relevantFiles change
+  useEffect(() => {
+    if (relevantFiles.length > 0 && selectedRelevantFiles.length === 0) {
+      dispatch(setSelectedRelevantFiles(relevantFiles))
+    }
+  }, [relevantFiles, selectedRelevantFiles.length, dispatch])
 
   const handleAnswerChange = (index: number, answer: string) => {
     dispatch(updateQuestionAnswer({ index, answer }))
@@ -37,11 +40,9 @@ const Step2PromptClarification: React.FC = () => {
   const handleAddFiles = async () => {
     try {
       if (window.electronAPI) {
-        const folderPath = await window.electronAPI.selectFolder()
-        if (folderPath) {
-          const files = await window.electronAPI.getProjectFiles(folderPath)
-          // Show file selection dialog or add all files
-          files.forEach((file) => {
+        const selectedFiles = await window.electronAPI.selectFiles()
+        if (selectedFiles && selectedFiles.length > 0) {
+          selectedFiles.forEach((file) => {
             dispatch(addManualFile(file))
           })
         }
@@ -51,19 +52,16 @@ const Step2PromptClarification: React.FC = () => {
     }
   }
 
-  const handleFileToggle = (filePath: string, isRelevant: boolean) => {
-    if (isRelevant) {
-      const newSelected = new Set(selectedFiles)
-      if (newSelected.has(filePath)) {
-        newSelected.delete(filePath)
-      } else {
-        newSelected.add(filePath)
-      }
-      setSelectedFiles(newSelected)
-    } else {
-      // For manually added files, remove them
-      dispatch(removeManualFile(filePath))
-    }
+  const handleRelevantFileToggle = (filePath: string) => {
+    const updatedSelection = selectedRelevantFiles.includes(filePath)
+      ? selectedRelevantFiles.filter((f) => f !== filePath)
+      : [...selectedRelevantFiles, filePath]
+
+    dispatch(setSelectedRelevantFiles(updatedSelection))
+  }
+
+  const handleRemoveManualFile = (filePath: string) => {
+    dispatch(removeManualFile(filePath))
   }
 
   if (loading) {
@@ -91,7 +89,7 @@ const Step2PromptClarification: React.FC = () => {
     )
   }
 
-  const allFiles = [...relevantFiles, ...manuallyAddedFiles]
+  const allFiles = [...selectedRelevantFiles, ...manuallyAddedFiles]
 
   return (
     <div className="space-y-6">
@@ -141,7 +139,7 @@ const Step2PromptClarification: React.FC = () => {
             Selected Files ({allFiles.length})
           </h3>
           <button className="btn btn-outline btn-sm" onClick={handleAddFiles}>
-            📁 Add More Files
+            📁 Add Files
           </button>
         </div>
 
@@ -166,8 +164,8 @@ const Step2PromptClarification: React.FC = () => {
                     </div>
                     <input
                       type="checkbox"
-                      checked={selectedFiles.has(filePath)}
-                      onChange={() => handleFileToggle(filePath, true)}
+                      checked={selectedRelevantFiles.includes(filePath)}
+                      onChange={() => handleRelevantFileToggle(filePath)}
                       className="checkbox checkbox-primary checkbox-sm"
                     />
                   </div>
@@ -200,7 +198,7 @@ const Step2PromptClarification: React.FC = () => {
                     </div>
                     <button
                       className="btn btn-ghost btn-xs text-error"
-                      onClick={() => handleFileToggle(filePath, false)}
+                      onClick={() => handleRemoveManualFile(filePath)}
                     >
                       ✕
                     </button>
@@ -228,9 +226,9 @@ const Step2PromptClarification: React.FC = () => {
             <span className="mr-2">ℹ️</span>
             <span className="text-sm">
               Total files selected:{' '}
-              {selectedFiles.size + manuallyAddedFiles.length}(
-              {selectedFiles.size} AI suggested + {manuallyAddedFiles.length}{' '}
-              manually added)
+              {selectedRelevantFiles.length + manuallyAddedFiles.length}(
+              {selectedRelevantFiles.length} AI suggested +{' '}
+              {manuallyAddedFiles.length} manually added)
             </span>
           </div>
         </div>

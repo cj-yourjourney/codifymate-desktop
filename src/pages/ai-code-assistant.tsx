@@ -22,7 +22,7 @@ const AICodeAssistant: React.FC = () => {
     clarifyingQuestionsWithAnswers,
     additionalNotes,
     manuallyAddedFiles,
-    relevantFiles,
+    selectedRelevantFiles,
     loading
   } = useAppSelector((state) => state.promptClarification)
 
@@ -57,7 +57,7 @@ const AICodeAssistant: React.FC = () => {
       }
     } else if (currentStep === 2) {
       // Prepare data for code generation
-      const allSelectedFiles = [...relevantFiles, ...manuallyAddedFiles]
+      const allSelectedFiles = [...selectedRelevantFiles, ...manuallyAddedFiles]
 
       // Here you would typically send the data to your code generation API
       const codeGenerationData = {

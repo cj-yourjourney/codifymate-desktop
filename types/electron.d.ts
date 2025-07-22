@@ -2,6 +2,7 @@
 export interface ElectronAPI {
   getAppVersion: () => Promise<string>
   selectFolder: () => Promise<string | null>
+  selectFiles: () => Promise<string[]>
   getProjectFiles: (folderPath: string) => Promise<string[]>
 }
 

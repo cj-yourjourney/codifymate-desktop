@@ -4,8 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
+  selectFiles: () => ipcRenderer.invoke('select-files'),
   getProjectFiles: (folderPath: string) =>
     ipcRenderer.invoke('get-project-files', folderPath)
 })
-
-
