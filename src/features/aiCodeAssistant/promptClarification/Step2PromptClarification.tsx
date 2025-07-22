@@ -5,7 +5,7 @@ import { useAppSelector } from '@/shared/store/hook'
 
 const Step2PromptClarification: React.FC = () => {
   const { clarifyingQuestions, relevantFiles, loading, error } = useAppSelector(
-    (state) => state.promptRefinement
+    (state) => state.promptClarification
   )
 
   if (loading) {

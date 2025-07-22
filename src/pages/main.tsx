@@ -1,7 +1,7 @@
 // components/AICodeAssistant.tsx (updated)
 import React, { useState } from 'react'
 import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
-import { refinePrompt } from '@/features/aiCodeAssistant/promptRefinement/state/promptRefinementSlice'
+import { refinePrompt } from '@/features/aiCodeAssistant/promptClarification/state/promptClarificationSlice'
 import { Step1PromptRefinement, Step2PromptClarification, Step3CodeGeneration } from '@/features/aiCodeAssistant/steps'
 
 interface CodeResponse {
@@ -12,8 +12,11 @@ interface CodeResponse {
 
 const AICodeAssistant: React.FC = () => {
   const dispatch = useAppDispatch()
-  const { userPrompt, projectFilePaths, clarifyingQuestions, loading } =
+  const { userPrompt, projectFilePaths } =
     useAppSelector((state) => state.promptRefinement)
+  const { clarifyingQuestions, loading } =
+    useAppSelector((state) => state.promptClarification)
+
 
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [codeResponse, setCodeResponse] = useState<CodeResponse | null>(null)
