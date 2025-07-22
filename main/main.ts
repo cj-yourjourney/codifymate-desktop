@@ -1,5 +1,7 @@
-import { app, BrowserWindow, ipcMain, protocol } from 'electron'
+// main/main.ts (updated with file system handling)
+import { app, BrowserWindow, ipcMain, protocol, dialog } from 'electron'
 import * as path from 'path'
+import * as fs from 'fs'
 import { isDev } from './util'
 
 if (require('electron-squirrel-startup')) {
@@ -14,7 +16,7 @@ const createWindow = (): void => {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: false // Allow local file access
+      webSecurity: false
     }
   })
 
@@ -22,17 +24,13 @@ const createWindow = (): void => {
     mainWindow.loadURL('http://localhost:3000')
     mainWindow.webContents.openDevTools()
   } else {
-    // Load the index.html from the out directory
     const indexPath = path.join(__dirname, '../out/index.html')
     console.log('Loading file from:', indexPath)
-
-    // Use file:// protocol directly
     mainWindow.loadFile(indexPath)
   }
 }
 
 app.whenReady().then(() => {
-  // Register file protocol handler for better asset loading
   protocol.registerFileProtocol('file', (request, callback) => {
     const pathname = decodeURI(request.url.replace('file:///', ''))
     callback(pathname)
@@ -53,7 +51,100 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Example IPC handler
+// Helper function to recursively get all file paths
+function getAllFilePaths(dirPath: string, fileList: string[] = []): string[] {
+  const files = fs.readdirSync(dirPath)
+
+  files.forEach((file) => {
+    const filePath = path.join(dirPath, file)
+    const stat = fs.statSync(filePath)
+
+    if (stat.isDirectory()) {
+      // Skip common directories that shouldn't be included
+      if (
+        ![
+          'node_modules',
+          '.git',
+          '.next',
+          'dist',
+          'build',
+          '__pycache__'
+        ].includes(file)
+      ) {
+        getAllFilePaths(filePath, fileList)
+      }
+    } else {
+      // Only include relevant file types
+      const ext = path.extname(file).toLowerCase()
+      const relevantExts = [
+        '.js',
+        '.ts',
+        '.jsx',
+        '.tsx',
+        '.py',
+        '.java',
+        '.cpp',
+        '.c',
+        '.h',
+        '.css',
+        '.scss',
+        '.html',
+        '.vue',
+        '.php',
+        '.rb',
+        '.go',
+        '.rs',
+        '.swift',
+        '.kt',
+        '.dart',
+        '.json',
+        '.yml',
+        '.yaml',
+        '.xml',
+        '.sql'
+      ]
+
+      if (relevantExts.includes(ext)) {
+        fileList.push(filePath)
+      }
+    }
+  })
+
+  return fileList
+}
+
+// IPC handlers
 ipcMain.handle('get-app-version', () => {
   return app.getVersion()
+})
+
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory']
+  })
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0]
+  }
+
+  return null
+})
+
+ipcMain.handle('get-project-files', async (event, folderPath: string) => {
+  try {
+    if (!folderPath || !fs.existsSync(folderPath)) {
+      throw new Error('Invalid folder path')
+    }
+
+    const stat = fs.statSync(folderPath)
+    if (!stat.isDirectory()) {
+      throw new Error('Path is not a directory')
+    }
+
+    const filePaths = getAllFilePaths(folderPath)
+    return filePaths
+  } catch (error) {
+    console.error('Error getting project files:', error)
+    throw error
+  }
 })

@@ -2,6 +2,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import counterReducer from './counterSlice' // Correct path: same directory
 import { composeWithDevTools } from '@redux-devtools/remote'
+import promptRefinementReducer from '@/features/aiCodeAssistant/promptRefinement/state/promptRefinementSlice'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -23,7 +24,8 @@ const composeEnhancers = isDevelopment
 // Create store with conditional configuration
 export const store = configureStore({
   reducer: {
-    counter: counterReducer
+    counter: counterReducer,
+    promptRefinement: promptRefinementReducer
   },
   devTools: false,
   // Use enhancers callback function for Redux Toolkit compatibility

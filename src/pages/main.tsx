@@ -1,21 +1,8 @@
+// components/AICodeAssistant.tsx (updated)
 import React, { useState } from 'react'
-import {
-  Step1PromptRefinement,
-  Step2PromptClarification,
-  Step3CodeGeneration
-} from '@/features/aiCodeAssistant/steps'
-
-
-interface Question {
-  id: string
-  question: string
-  answer: string
-}
-
-interface FileReference {
-  path: string
-  relevant: boolean
-}
+import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
+import { refinePrompt } from '@/features/aiCodeAssistant/promptRefinement/state/promptRefinementSlice'
+import { Step1PromptRefinement, Step2PromptClarification, Step3CodeGeneration } from '@/features/aiCodeAssistant/steps'
 
 interface CodeResponse {
   explanation: string
@@ -24,13 +11,13 @@ interface CodeResponse {
 }
 
 const AICodeAssistant: React.FC = () => {
-  const [userPrompt, setUserPrompt] = useState<string>('')
-  const [selectedFolder, setSelectedFolder] = useState<string>('')
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [fileReferences, setFileReferences] = useState<FileReference[]>([])
-  const [codeResponse, setCodeResponse] = useState<CodeResponse | null>(null)
-  const [refinePrompt, setRefinePrompt] = useState<string>('')
+  const dispatch = useAppDispatch()
+  const { userPrompt, projectFilePaths, clarifyingQuestions, loading } =
+    useAppSelector((state) => state.promptRefinement)
+
   const [currentStep, setCurrentStep] = useState<number>(1)
+  const [codeResponse, setCodeResponse] = useState<CodeResponse | null>(null)
+  const [refinePromptText, setRefinePromptText] = useState<string>('')
 
   const stepTitles = [
     'Refine Prompt',
@@ -40,126 +27,35 @@ const AICodeAssistant: React.FC = () => {
 
   const stepColors = ['primary', 'success', 'secondary']
 
-  // Placeholder Data (mocked for now)
-  const placeholderQuestions: Question[] = [
-    {
-      id: '1',
-      question: 'What specific functionality should this component handle?',
-      answer: 'User authentication and session management'
-    },
-    {
-      id: '2',
-      question: 'Should this integrate with any existing APIs?',
-      answer: 'Yes, integrate with our REST API for user data'
-    },
-    {
-      id: '3',
-      question: 'What styling framework are you using?',
-      answer: 'Tailwind CSS'
-    }
-  ]
-
-  const placeholderFiles: FileReference[] = [
-    { path: '/src/components/auth/LoginForm.tsx', relevant: true },
-    { path: '/src/lib/api.ts', relevant: true },
-    { path: '/src/types/user.ts', relevant: true },
-    { path: '/src/styles/globals.css', relevant: false },
-    { path: '/src/utils/validation.ts', relevant: true }
-  ]
-
-  const placeholderCodeResponse: CodeResponse = {
-    explanation:
-      "I've created a comprehensive authentication component that handles user login with form validation, API integration, and proper error handling. The component uses React hooks for state management and includes TypeScript interfaces for type safety.",
-    code: `import React, { useState } from 'react';
-import { User, LoginCredentials } from '../types/user';
-import { api } from '../lib/api';
-
-interface LoginFormProps {
-  onLogin: (user: User) => void;
-  onError: (error: string) => void;
-}
-
-export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
-  const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: '',
-    password: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async () => {
-    setIsLoading(true);
-
-    try {
-      const user = await api.login(credentials);
-      onLogin(user);
-    } catch (error) {
-      onError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCredentials(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Email</span>
-        </label>
-        <input
-          type="email"
-          name="email"
-          value={credentials.email}
-          onChange={handleInputChange}
-          className="input input-bordered w-full"
-          required
-        />
-      </div>
-      
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text">Password</span>
-        </label>
-        <input
-          type="password"
-          name="password"
-          value={credentials.password}
-          onChange={handleInputChange}
-          className="input input-bordered w-full"
-          required
-        />
-      </div>
-
-      <button
-        onClick={handleSubmit}
-        disabled={isLoading}
-        className="btn btn-primary w-full"
-      >
-        {isLoading ? 'Signing in...' : 'Sign in'}
-      </button>
-    </div>
-  );
-};`,
-    language: 'typescript'
-  }
-
-  const handleNextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1)
-      if (currentStep === 1) {
-        setQuestions(placeholderQuestions)
-        setFileReferences(placeholderFiles)
+  const handleNextStep = async () => {
+    if (currentStep === 1) {
+      // Call the refine prompt API
+      if (userPrompt && projectFilePaths.length > 0) {
+        try {
+          await dispatch(
+            refinePrompt({
+              user_prompts: userPrompt,
+              project_file_paths: projectFilePaths
+            })
+          ).unwrap()
+          setCurrentStep(2)
+        } catch (error) {
+          console.error('Failed to refine prompt:', error)
+        }
+      } else {
+        alert('Please enter a prompt and select a project folder first.')
+        return
       }
-      if (currentStep === 2) {
-        setCodeResponse(placeholderCodeResponse)
-      }
+    } else if (currentStep === 2) {
+      // Move to step 3 (code generation would be implemented here)
+      setCurrentStep(3)
+      // Mock code response for now
+      setCodeResponse({
+        explanation:
+          "Based on your project structure and requirements, I'll generate the appropriate code.",
+        code: '// Your generated code will appear here',
+        language: 'typescript'
+      })
     }
   }
 
@@ -170,33 +66,40 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
   }
 
   const handleStepClick = (step: number) => {
-    setCurrentStep(step)
+    // Only allow navigation to completed steps or the next step
+    if (
+      step <= currentStep ||
+      (step === currentStep + 1 && canProceedToStep(step))
+    ) {
+      setCurrentStep(step)
+    }
+  }
+
+  const canProceedToStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return true
+      case 2:
+        return userPrompt.trim() !== '' && projectFilePaths.length > 0
+      case 3:
+        return clarifyingQuestions.length > 0
+      default:
+        return false
+    }
   }
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <Step1PromptRefinement
-            userPrompt={userPrompt}
-            selectedFolder={selectedFolder}
-            setUserPrompt={setUserPrompt}
-            setSelectedFolder={setSelectedFolder}
-          />
-        )
+        return <Step1PromptRefinement />
       case 2:
-        return (
-          <Step2PromptClarification
-            questions={questions}
-            fileReferences={fileReferences}
-          />
-        )
+        return <Step2PromptClarification />
       case 3:
         return (
           <Step3CodeGeneration
             codeResponse={codeResponse}
-            refinePrompt={refinePrompt}
-            setRefinePrompt={setRefinePrompt}
+            refinePrompt={refinePromptText}
+            setRefinePrompt={setRefinePromptText}
           />
         )
       default:
@@ -217,6 +120,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
     }
   }
 
+  const isNextButtonDisabled = () => {
+    if (loading) return true
+
+    switch (currentStep) {
+      case 1:
+        return !userPrompt.trim() || projectFilePaths.length === 0
+      case 2:
+        return clarifyingQuestions.length === 0
+      case 3:
+        return !refinePromptText.trim()
+      default:
+        return false
+    }
+  }
+
   return (
     <div className="min-h-screen bg-base-200 p-6">
       <div className="max-w-6xl mx-auto">
@@ -234,7 +152,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
                 key={index + 1}
                 className={`step ${
                   currentStep >= index + 1 ? `step-${stepColors[index]}` : ''
-                } cursor-pointer`}
+                } ${
+                  canProceedToStep(index + 1) || currentStep > index + 1
+                    ? 'cursor-pointer'
+                    : 'cursor-not-allowed opacity-50'
+                }`}
                 onClick={() => handleStepClick(index + 1)}
               >
                 {title}
@@ -264,7 +186,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
               <button
                 className="btn btn-outline"
                 onClick={handlePrevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || loading}
               >
                 ← Previous
               </button>
@@ -279,6 +201,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
                         : 'btn-outline'
                     }`}
                     onClick={() => handleStepClick(index + 1)}
+                    disabled={
+                      !canProceedToStep(index + 1) && currentStep <= index + 1
+                    }
                   >
                     {index + 1}
                   </button>
@@ -288,11 +213,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onError }) => {
               <button
                 className={`btn btn-${stepColors[currentStep - 1]}`}
                 onClick={currentStep === 3 ? undefined : handleNextStep}
-                disabled={currentStep === 3 && !refinePrompt.trim()}
+                disabled={isNextButtonDisabled()}
               >
-                {currentStep === 3
-                  ? getStepButtonText()
-                  : `${getStepButtonText()} →`}
+                {loading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    {currentStep === 3
+                      ? getStepButtonText()
+                      : `${getStepButtonText()} →`}
+                  </>
+                )}
               </button>
             </div>
           </div>
