@@ -27,9 +27,17 @@ interface RefinePromptResponse {
   }
 }
 
+interface QuestionAnswer {
+  question: string
+  answer: string
+}
+
 interface PromptClarificationState {
   clarifyingQuestions: string[]
+  clarifyingQuestionsWithAnswers: QuestionAnswer[]
   relevantFiles: string[]
+  manuallyAddedFiles: string[]
+  additionalNotes: string
   projectStructure: ProjectStructure | null
   workflowMessages: WorkflowMessage[]
   loading: boolean
@@ -38,7 +46,10 @@ interface PromptClarificationState {
 
 const initialState: PromptClarificationState = {
   clarifyingQuestions: [],
+  clarifyingQuestionsWithAnswers: [],
   relevantFiles: [],
+  manuallyAddedFiles: [],
+  additionalNotes: '',
   projectStructure: null,
   workflowMessages: [],
   loading: false,
@@ -71,7 +82,38 @@ const promptClarificationSlice = createSlice({
   name: 'promptClarification',
   initialState,
   reducers: {
-    resetClarificationState: () => initialState
+    resetClarificationState: () => initialState,
+    updateQuestionAnswer: (
+      state,
+      action: PayloadAction<{ index: number; answer: string }>
+    ) => {
+      const { index, answer } = action.payload
+      if (state.clarifyingQuestionsWithAnswers[index]) {
+        state.clarifyingQuestionsWithAnswers[index].answer = answer
+      }
+    },
+    setAdditionalNotes: (state, action: PayloadAction<string>) => {
+      state.additionalNotes = action.payload
+    },
+    addManualFile: (state, action: PayloadAction<string>) => {
+      if (!state.manuallyAddedFiles.includes(action.payload)) {
+        state.manuallyAddedFiles.push(action.payload)
+      }
+    },
+    removeManualFile: (state, action: PayloadAction<string>) => {
+      state.manuallyAddedFiles = state.manuallyAddedFiles.filter(
+        (file) => file !== action.payload
+      )
+    },
+    toggleRelevantFile: (state, action: PayloadAction<string>) => {
+      const filePath = action.payload
+      const index = state.relevantFiles.indexOf(filePath)
+      if (index > -1) {
+        state.relevantFiles.splice(index, 1)
+      } else {
+        state.relevantFiles.push(filePath)
+      }
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -83,6 +125,12 @@ const promptClarificationSlice = createSlice({
         state.loading = false
         if (action.payload.success) {
           state.clarifyingQuestions = action.payload.data.clarifying_questions
+          // Initialize question-answer pairs
+          state.clarifyingQuestionsWithAnswers =
+            action.payload.data.clarifying_questions.map((question) => ({
+              question,
+              answer: ''
+            }))
           state.relevantFiles = action.payload.data.relevant_files
           state.projectStructure = action.payload.data.project_structure
           state.workflowMessages = action.payload.data.workflow_messages
@@ -95,5 +143,13 @@ const promptClarificationSlice = createSlice({
   }
 })
 
-export const { resetClarificationState } = promptClarificationSlice.actions
+export const {
+  resetClarificationState,
+  updateQuestionAnswer,
+  setAdditionalNotes,
+  addManualFile,
+  removeManualFile,
+  toggleRelevantFile
+} = promptClarificationSlice.actions
+
 export default promptClarificationSlice.reducer
