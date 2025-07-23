@@ -1,51 +1,131 @@
 import React from 'react'
-
-interface CodeResponse {
-  explanation: string
-  code: string
-  language: string
-}
+import { useAppSelector } from '@/shared/store/hook'
 
 interface Step3Props {
-  codeResponse: CodeResponse | null
   refinePrompt: string
   setRefinePrompt: (value: string) => void
 }
 
 const Step3CodeGeneration: React.FC<Step3Props> = ({
-  codeResponse,
   refinePrompt,
   setRefinePrompt
 }) => {
-  if (!codeResponse) return null
+  const { generatedCodeVersions, currentVersion, loading, error } =
+    useAppSelector((state) => state.codeGeneration)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <span className="loading loading-spinner loading-lg"></span>
+        <span className="ml-4">Generating code...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-error">
+        <span>{error}</span>
+      </div>
+    )
+  }
+
+  if (!currentVersion) {
+    return (
+      <div className="text-center py-8 text-base-content/60">
+        No code generated yet. Please complete the previous steps first.
+      </div>
+    )
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    // You might want to show a toast notification here
+  }
+
+  const formatVersionHistory = () => {
+    return generatedCodeVersions.map((version, index) => {
+      const isLatest = version.id === currentVersion?.id
+      const alertType = isLatest ? 'alert-success' : 'alert-info'
+
+      return (
+        <div key={version.id} className={`alert ${alertType} alert-sm`}>
+          <div className="text-sm">
+            <span className="font-semibold">{version.version}:</span>{' '}
+            {version.explanation.substring(0, 80)}
+            {version.explanation.length > 80 ? '...' : ''}
+          </div>
+        </div>
+      )
+    })
+  }
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Generated Code</h3>
-          <button className="btn btn-outline btn-sm">📋 Copy</button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() =>
+              copyToClipboard(
+                currentVersion.files_to_modify.map((f) => f.code).join('\n\n')
+              )
+            }
+          >
+            📋 Copy
+          </button>
         </div>
 
         <div className="alert alert-info">
           <div>
             <h4 className="font-semibold mb-2">AI Explanation</h4>
-            <p className="text-sm opacity-90">{codeResponse.explanation}</p>
+            <p className="text-sm opacity-90">{currentVersion.explanation}</p>
+            {currentVersion.additional_notes && (
+              <div className="mt-2">
+                <h5 className="font-medium text-xs opacity-75">
+                  Additional Notes:
+                </h5>
+                <p className="text-xs opacity-70">
+                  {currentVersion.additional_notes}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="mockup-code">
-          <div className="flex items-center justify-between px-6 py-2 bg-neutral text-neutral-content">
-            <div className="flex items-center">
-              <span className="mr-2">💻</span>
-              <span className="text-sm font-medium">
-                {codeResponse.language}
-              </span>
+        <div className="space-y-4">
+          {currentVersion.files_to_modify.map((file, index) => (
+            <div key={index} className="mockup-code">
+              <div className="flex items-center justify-between px-6 py-2 bg-neutral text-neutral-content">
+                <div className="flex items-center">
+                  <span className="mr-2">📄</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {file.file_path.split('/').pop()}
+                    </span>
+                    <span className="text-xs opacity-70">
+                      {file.change_type} • {file.file_path}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => copyToClipboard(file.code)}
+                >
+                  📋
+                </button>
+              </div>
+              <div className="px-6 py-2 bg-base-300">
+                <p className="text-xs text-base-content/70">
+                  {file.description}
+                </p>
+              </div>
+              <pre className="px-6 py-4 overflow-x-auto text-sm max-h-96">
+                <code>{file.code}</code>
+              </pre>
             </div>
-          </div>
-          <pre className="px-6 py-4 overflow-x-auto text-sm max-h-96">
-            <code>{codeResponse.code}</code>
-          </pre>
+          ))}
         </div>
       </div>
 
@@ -80,24 +160,13 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
         <div>
           <h4 className="font-semibold mb-3">Version History</h4>
           <div className="space-y-2 max-h-40 overflow-y-auto">
-            <div className="alert alert-success alert-sm">
-              <div className="text-sm">
-                <span className="font-semibold">v1.2:</span> Added form
-                validation and accessibility improvements
+            {generatedCodeVersions.length > 0 ? (
+              formatVersionHistory()
+            ) : (
+              <div className="text-center py-4 text-base-content/60 text-sm">
+                No version history yet
               </div>
-            </div>
-            <div className="alert alert-info alert-sm">
-              <div className="text-sm">
-                <span className="font-semibold">v1.1:</span> Added loading
-                states and improved error handling
-              </div>
-            </div>
-            <div className="alert alert-warning alert-sm">
-              <div className="text-sm">
-                <span className="font-semibold">v1.0:</span> Initial code
-                generation
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

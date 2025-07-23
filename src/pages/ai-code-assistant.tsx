@@ -1,33 +1,44 @@
 import React, { useState } from 'react'
 import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
 import { refinePrompt } from '@/features/aiCodeAssistant/promptClarification/state/promptClarificationSlice'
+import { generateCode } from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 import {
   Step1PromptRefinement,
   Step2PromptClarification,
   Step3CodeGeneration
 } from '@/features/aiCodeAssistant/steps'
 
-interface CodeResponse {
-  explanation: string
-  code: string
-  language: string
-}
-
 const AICodeAssistant: React.FC = () => {
   const dispatch = useAppDispatch()
-  const { userPrompt, projectFilePaths } = useAppSelector(
+
+  // Add debugging for Redux state
+  const promptRefinementState = useAppSelector(
     (state) => state.promptRefinement
   )
+  const promptClarificationState = useAppSelector(
+    (state) => state.promptClarification
+  )
+  const codeGenerationState = useAppSelector((state) => state.codeGeneration)
+
+  console.log('🔍 Redux states:', {
+    promptRefinement: promptRefinementState,
+    promptClarification: promptClarificationState,
+    codeGeneration: codeGenerationState
+  })
+
+  const { userPrompt, projectFilePaths } = promptRefinementState
   const {
     clarifyingQuestionsWithAnswers,
     additionalNotes,
     manuallyAddedFiles,
     selectedRelevantFiles,
-    loading
-  } = useAppSelector((state) => state.promptClarification)
+    projectStructure,
+    loading: clarificationLoading
+  } = promptClarificationState
+
+  const { currentVersion, loading: codeGenerationLoading } = codeGenerationState
 
   const [currentStep, setCurrentStep] = useState<number>(1)
-  const [codeResponse, setCodeResponse] = useState<CodeResponse | null>(null)
   const [refinePromptText, setRefinePromptText] = useState<string>('')
 
   const stepTitles = [
@@ -38,6 +49,16 @@ const AICodeAssistant: React.FC = () => {
   const stepColors = ['primary', 'success', 'secondary']
 
   const handleNextStep = async () => {
+    console.log('🔴 BUTTON CLICKED! Current step:', currentStep)
+    console.log('🔍 Component state:', {
+      currentStep,
+      userPrompt,
+      projectFilePaths,
+      clarificationLoading,
+      codeGenerationLoading
+    })
+    console.log(`🔘 handleNextStep called at step ${currentStep}`)
+
     if (currentStep === 1) {
       if (userPrompt && projectFilePaths.length > 0) {
         try {
@@ -49,40 +70,113 @@ const AICodeAssistant: React.FC = () => {
           ).unwrap()
           setCurrentStep(2)
         } catch (error) {
-          console.error('Failed to refine prompt:', error)
+          console.error('❌ Failed to refine prompt:', error)
         }
       } else {
         alert('Please enter a prompt and select a project folder first.')
-        return
       }
     } else if (currentStep === 2) {
-      // Prepare data for code generation
-      const allSelectedFiles = [...selectedRelevantFiles, ...manuallyAddedFiles]
-
-      // Here you would typically send the data to your code generation API
-      const codeGenerationData = {
-        userPrompt,
-        clarifyingQuestionsWithAnswers,
-        additionalNotes,
-        selectedFiles: allSelectedFiles
+      // Prepare default values to ensure generateCode always triggers
+      const defaultProjectStructure = projectStructure || {
+        type: 'unknown',
+        root: '.',
+        structure: {
+          root_files: []
+        },
+        conventions: {},
+        framework: {}
       }
 
-      console.log('Code generation data:', codeGenerationData)
+      const defaultClarifyingQuestions =
+        clarifyingQuestionsWithAnswers.length > 0
+          ? clarifyingQuestionsWithAnswers
+          : [
+              {
+                question: 'No questions available',
+                answer: 'No answer provided'
+              }
+            ]
 
-      setCurrentStep(3)
-      setCodeResponse({
-        explanation:
-          "Based on your project structure and requirements, I'll generate the appropriate code.",
-        code: '// Your generated code will appear here\n// Based on your answers and selected files',
-        language: 'typescript'
+      console.log('🔘 Step 2: Attempting to generate code...')
+      console.log('📊 Current state:', {
+        userPrompt: userPrompt || 'No prompt',
+        clarifyingQuestionsCount: clarifyingQuestionsWithAnswers.length,
+        projectStructureExists: !!projectStructure,
+        selectedFilesCount: selectedRelevantFiles.length,
+        manualFilesCount: manuallyAddedFiles.length
       })
+
+      try {
+        console.log('🚀 Dispatching generateCode with payload:', {
+          userPrompt: userPrompt || 'Generate basic code structure',
+          clarifyingQuestionsWithAnswers: defaultClarifyingQuestions,
+          selectedRelevantFiles,
+          manuallyAddedFiles,
+          additionalNotes: additionalNotes || 'No additional notes provided',
+          projectStructure: defaultProjectStructure
+        })
+
+        // Always trigger generateCode with default values if needed
+        const result = await dispatch(
+          generateCode({
+            userPrompt: userPrompt || 'Generate basic code structure',
+            clarifyingQuestionsWithAnswers: defaultClarifyingQuestions,
+            selectedRelevantFiles,
+            manuallyAddedFiles,
+            additionalNotes: additionalNotes || 'No additional notes provided',
+            projectStructure: defaultProjectStructure
+          })
+        ).unwrap()
+
+        console.log('✅ generateCode completed successfully:', result)
+        setCurrentStep(3)
+      } catch (error) {
+        console.error('❌ Failed to generate code:', error)
+        console.error('❌ Error details:', error)
+        alert(
+          `Failed to generate code: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        )
+      }
+    } else if (currentStep === 3) {
+      // Handle refinement step
+      if (!refinePromptText.trim()) {
+        alert('Please enter refinement instructions.')
+        return
+      }
+
+      try {
+        console.log('🔄 Refining code with prompt:', refinePromptText)
+
+        // You might want to create a separate refineCode action for this
+        // For now, we'll reuse generateCode with the refinement prompt
+        const result = await dispatch(
+          generateCode({
+            userPrompt: `${userPrompt}\n\nRefinement instructions: ${refinePromptText}`,
+            clarifyingQuestionsWithAnswers,
+            selectedRelevantFiles,
+            manuallyAddedFiles,
+            additionalNotes,
+            projectStructure
+          })
+        ).unwrap()
+
+        console.log('✅ Code refinement completed successfully:', result)
+        setRefinePromptText('') // Clear the refinement text after successful refinement
+      } catch (error) {
+        console.error('❌ Failed to refine code:', error)
+        alert(
+          `Failed to refine code: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`
+        )
+      }
     }
   }
 
   const handlePrevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
   const handleStepClick = (step: number) => {
@@ -119,7 +213,6 @@ const AICodeAssistant: React.FC = () => {
       case 3:
         return (
           <Step3CodeGeneration
-            codeResponse={codeResponse}
             refinePrompt={refinePromptText}
             setRefinePrompt={setRefinePromptText}
           />
@@ -143,16 +236,16 @@ const AICodeAssistant: React.FC = () => {
   }
 
   const isNextButtonDisabled = () => {
+    const loading = clarificationLoading || codeGenerationLoading
+
     if (loading) return true
 
     switch (currentStep) {
       case 1:
         return !userPrompt.trim() || projectFilePaths.length === 0
       case 2:
-        return (
-          clarifyingQuestionsWithAnswers.length === 0 ||
-          clarifyingQuestionsWithAnswers.some((qa) => qa.answer.trim() === '')
-        )
+        // Always allow proceeding from step 2 to force generateCode to trigger
+        return false
       case 3:
         return !refinePromptText.trim()
       default:
@@ -211,7 +304,11 @@ const AICodeAssistant: React.FC = () => {
               <button
                 className="btn btn-outline"
                 onClick={handlePrevStep}
-                disabled={currentStep === 1 || loading}
+                disabled={
+                  currentStep === 1 ||
+                  clarificationLoading ||
+                  codeGenerationLoading
+                }
               >
                 ← Previous
               </button>
@@ -237,13 +334,15 @@ const AICodeAssistant: React.FC = () => {
 
               <button
                 className={`btn btn-${stepColors[currentStep - 1]}`}
-                onClick={currentStep === 3 ? undefined : handleNextStep}
+                onClick={handleNextStep}
                 disabled={isNextButtonDisabled()}
               >
-                {loading ? (
+                {clarificationLoading || codeGenerationLoading ? (
                   <>
                     <span className="loading loading-spinner loading-sm"></span>
-                    Processing...
+                    {codeGenerationLoading
+                      ? 'Generating Code...'
+                      : 'Processing...'}
                   </>
                 ) : (
                   <>
