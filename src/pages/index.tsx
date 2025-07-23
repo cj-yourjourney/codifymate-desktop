@@ -26,17 +26,17 @@ export default function Home() {
 
             <div className="flex flex-col gap-4 mt-4 w-full">
               <Link href="/about" className="btn btn-primary w-full">
-                Go to About Page
+                About Page
               </Link>
             </div>
             <div className="flex flex-col gap-4 mt-4 w-full">
               <Link href="/test" className="btn btn-primary w-full">
-                Go to Main Page
+                Test Page
               </Link>
               </div>
             <div className="flex flex-col gap-4 mt-4 w-full">
-              <Link href="/ai-code-assistant" className="btn btn-primary w-full">
-                Go to Main Page
+              <Link href="/ai-code-assistant" className="btn btn-accent w-full">
+                AI Code Assistant
               </Link>
             </div>
           </div>
