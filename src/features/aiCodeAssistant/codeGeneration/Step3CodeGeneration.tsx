@@ -1,5 +1,9 @@
 import React from 'react'
-import { useAppSelector } from '@/shared/store/hook'
+import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
+import {
+  refineCode,
+  setCurrentVersion
+} from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 
 interface Step3Props {
   refinePrompt: string
@@ -10,8 +14,13 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
   refinePrompt,
   setRefinePrompt
 }) => {
-  const { generatedCodeVersions, currentVersion, loading, error } =
+  const dispatch = useAppDispatch()
+  const { generatedCodeVersions, currentVersion, loading, error, refining } =
     useAppSelector((state) => state.codeGeneration)
+
+  // Get context from other slices for refinement
+  const { selectedRelevantFiles, manuallyAddedFiles, projectStructure } =
+    useAppSelector((state) => state.promptClarification)
 
   if (loading) {
     return (
@@ -43,10 +52,64 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     // You might want to show a toast notification here
   }
 
+  const handleRefineCode = async () => {
+    if (!refinePrompt.trim()) {
+      alert('Please enter refinement instructions.')
+      return
+    }
+
+    if (!currentVersion) {
+      alert('No current version to refine.')
+      return
+    }
+
+    try {
+      await dispatch(
+        refineCode({
+          currentVersion,
+          refinementFeedback: refinePrompt,
+          selectedRelevantFiles: selectedRelevantFiles || [],
+          manuallyAddedFiles: manuallyAddedFiles || [],
+          projectStructure: projectStructure || {
+            type: 'unknown',
+            root: '.',
+            structure: { root_files: [] },
+            conventions: {},
+            framework: {}
+          }
+        })
+      ).unwrap()
+
+      // Clear the refinement prompt after successful refinement
+      setRefinePrompt('')
+    } catch (error) {
+      console.error('Failed to refine code:', error)
+      alert(
+        `Failed to refine code: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      )
+    }
+  }
+
+  const handleVersionChange = (versionId: string) => {
+    dispatch(setCurrentVersion(versionId))
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  }
+
   const formatVersionHistory = () => {
-    return generatedCodeVersions.map((version, index) => {
+    // Reverse the array to show latest version first
+    return [...generatedCodeVersions].reverse().map((version, index) => {
       const isLatest = version.id === currentVersion?.id
       const alertType = isLatest ? 'alert-success' : 'alert-info'
+      const { date, time } = formatTimestamp(version.timestamp)
 
       return (
         <div key={version.id} className={`alert ${alertType} alert-sm`}>
@@ -54,10 +117,31 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
             <span className="font-semibold">{version.version}:</span>{' '}
             {version.explanation.substring(0, 80)}
             {version.explanation.length > 80 ? '...' : ''}
+            <div className="text-xs opacity-70 mt-1">
+              {date} at {time}
+              {version.refinement_prompt && (
+                <span className="ml-2 badge badge-xs">Refined</span>
+              )}
+            </div>
           </div>
         </div>
       )
     })
+  }
+
+  const getQuickActionPrompt = (action: string) => {
+    const prompts = {
+      comments: 'Add comprehensive comments and documentation to the code',
+      styling: 'Improve the styling and visual appearance of the components',
+      performance: 'Optimize the code for better performance and efficiency',
+      'error-handling': 'Add comprehensive error handling and validation'
+    }
+    return prompts[action as keyof typeof prompts] || action
+  }
+
+  const handleQuickAction = (action: string) => {
+    const prompt = getQuickActionPrompt(action)
+    setRefinePrompt(prompt)
   }
 
   return (
@@ -77,6 +161,30 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
           </button>
         </div>
 
+        {/* Version Selector */}
+        {generatedCodeVersions.length > 1 && (
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Version History</span>
+            </label>
+            <select
+              className="select select-bordered select-sm"
+              value={currentVersion.id}
+              onChange={(e) => handleVersionChange(e.target.value)}
+            >
+              {[...generatedCodeVersions].reverse().map((version) => {
+                const { date, time } = formatTimestamp(version.timestamp)
+                return (
+                  <option key={version.id} value={version.id}>
+                    {version.version} - {date} at {time}
+                    {version.refinement_prompt ? ' (Refined)' : ''}
+                  </option>
+                )
+              })}
+            </select>
+          </div>
+        )}
+
         <div className="alert alert-info">
           <div>
             <h4 className="font-semibold mb-2">AI Explanation</h4>
@@ -88,6 +196,16 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                 </h5>
                 <p className="text-xs opacity-70">
                   {currentVersion.additional_notes}
+                </p>
+              </div>
+            )}
+            {currentVersion.refinement_prompt && (
+              <div className="mt-2">
+                <h5 className="font-medium text-xs opacity-75">
+                  Last Refinement:
+                </h5>
+                <p className="text-xs opacity-70">
+                  {currentVersion.refinement_prompt}
                 </p>
               </div>
             )}
@@ -143,6 +261,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
             placeholder="e.g., Add loading states, improve error handling..."
             value={refinePrompt}
             onChange={(e) => setRefinePrompt(e.target.value)}
+            disabled={refining}
           />
           <div className="label">
             <span className="label-text-alt text-xs opacity-70">
@@ -152,8 +271,27 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
         </div>
 
         <div className="flex gap-3">
-          <button className="btn btn-warning flex-1">🔄 Refine Code</button>
-          <button className="btn btn-outline">↻ Reset</button>
+          <button
+            className="btn btn-warning flex-1"
+            onClick={handleRefineCode}
+            disabled={refining || !refinePrompt.trim()}
+          >
+            {refining ? (
+              <>
+                <span className="loading loading-spinner loading-sm"></span>
+                Refining...
+              </>
+            ) : (
+              <>🔄 Refine Code</>
+            )}
+          </button>
+          <button
+            className="btn btn-outline"
+            onClick={() => setRefinePrompt('')}
+            disabled={refining}
+          >
+            ↻ Clear
+          </button>
         </div>
 
         <div className="divider"></div>
@@ -174,14 +312,32 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
         <div>
           <h4 className="font-semibold mb-3">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-2">
-            <button className="btn btn-sm btn-outline">🔧 Add Comments</button>
-            <button className="btn btn-sm btn-outline">
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => handleQuickAction('comments')}
+              disabled={refining}
+            >
+              🔧 Add Comments
+            </button>
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => handleQuickAction('styling')}
+              disabled={refining}
+            >
               🎨 Improve Styling
             </button>
-            <button className="btn btn-sm btn-outline">
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => handleQuickAction('performance')}
+              disabled={refining}
+            >
               ⚡ Optimize Performance
             </button>
-            <button className="btn btn-sm btn-outline">
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={() => handleQuickAction('error-handling')}
+              disabled={refining}
+            >
               🛡️ Add Error Handling
             </button>
           </div>

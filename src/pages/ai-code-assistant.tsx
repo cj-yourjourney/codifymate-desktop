@@ -36,7 +36,11 @@ const AICodeAssistant: React.FC = () => {
     loading: clarificationLoading
   } = promptClarificationState
 
-  const { currentVersion, loading: codeGenerationLoading } = codeGenerationState
+  const {
+    currentVersion,
+    loading: codeGenerationLoading,
+    refining
+  } = codeGenerationState
 
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [refinePromptText, setRefinePromptText] = useState<string>('')
@@ -140,38 +144,11 @@ const AICodeAssistant: React.FC = () => {
         )
       }
     } else if (currentStep === 3) {
-      // Handle refinement step
-      if (!refinePromptText.trim()) {
-        alert('Please enter refinement instructions.')
-        return
-      }
-
-      try {
-        console.log('🔄 Refining code with prompt:', refinePromptText)
-
-        // You might want to create a separate refineCode action for this
-        // For now, we'll reuse generateCode with the refinement prompt
-        const result = await dispatch(
-          generateCode({
-            userPrompt: `${userPrompt}\n\nRefinement instructions: ${refinePromptText}`,
-            clarifyingQuestionsWithAnswers,
-            selectedRelevantFiles,
-            manuallyAddedFiles,
-            additionalNotes,
-            projectStructure
-          })
-        ).unwrap()
-
-        console.log('✅ Code refinement completed successfully:', result)
-        setRefinePromptText('') // Clear the refinement text after successful refinement
-      } catch (error) {
-        console.error('❌ Failed to refine code:', error)
-        alert(
-          `Failed to refine code: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`
-        )
-      }
+      // For step 3, we don't need to handle refinement here anymore
+      // Refinement is now handled directly in the Step3CodeGeneration component
+      console.log(
+        '✅ Already at final step. Refinement handled in Step3 component.'
+      )
     }
   }
 
@@ -229,14 +206,14 @@ const AICodeAssistant: React.FC = () => {
       case 2:
         return '🚀 Generate Code'
       case 3:
-        return '✨ Continue Refining'
+        return '✨ Code Generated Successfully'
       default:
         return 'Continue'
     }
   }
 
   const isNextButtonDisabled = () => {
-    const loading = clarificationLoading || codeGenerationLoading
+    const loading = clarificationLoading || codeGenerationLoading || refining
 
     if (loading) return true
 
@@ -247,10 +224,16 @@ const AICodeAssistant: React.FC = () => {
         // Always allow proceeding from step 2 to force generateCode to trigger
         return false
       case 3:
-        return !refinePromptText.trim()
+        // At step 3, we don't need the main next button to do anything
+        return true
       default:
         return false
     }
+  }
+
+  const shouldShowNextButton = () => {
+    // Hide the main next button on step 3 since refinement is handled within the component
+    return currentStep < 3
   }
 
   return (
@@ -307,7 +290,8 @@ const AICodeAssistant: React.FC = () => {
                 disabled={
                   currentStep === 1 ||
                   clarificationLoading ||
-                  codeGenerationLoading
+                  codeGenerationLoading ||
+                  refining
                 }
               >
                 ← Previous
@@ -332,26 +316,30 @@ const AICodeAssistant: React.FC = () => {
                 ))}
               </div>
 
-              <button
-                className={`btn btn-${stepColors[currentStep - 1]}`}
-                onClick={handleNextStep}
-                disabled={isNextButtonDisabled()}
-              >
-                {clarificationLoading || codeGenerationLoading ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    {codeGenerationLoading
-                      ? 'Generating Code...'
-                      : 'Processing...'}
-                  </>
-                ) : (
-                  <>
-                    {currentStep === 3
-                      ? getStepButtonText()
-                      : `${getStepButtonText()} →`}
-                  </>
-                )}
-              </button>
+              {shouldShowNextButton() && (
+                <button
+                  className={`btn btn-${stepColors[currentStep - 1]}`}
+                  onClick={handleNextStep}
+                  disabled={isNextButtonDisabled()}
+                >
+                  {clarificationLoading || codeGenerationLoading ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      {codeGenerationLoading
+                        ? 'Generating Code...'
+                        : 'Processing...'}
+                    </>
+                  ) : (
+                    <>{getStepButtonText()} →</>
+                  )}
+                </button>
+              )}
+
+              {currentStep === 3 && (
+                <div className="text-sm text-base-content/70">
+                  Use the refinement panel to improve your code
+                </div>
+              )}
             </div>
           </div>
         </div>
