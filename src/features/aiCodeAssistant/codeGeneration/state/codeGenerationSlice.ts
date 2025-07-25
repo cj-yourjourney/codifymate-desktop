@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { API_ENDPOINTS, apiRequest } from '@/shared/api/config'
 
 interface FileToModify {
   file_path: string
@@ -116,26 +117,17 @@ export const generateCode = createAsyncThunk(
 
     console.log('Sending request to generate code:', requestPayload)
 
-    const response = await fetch(
-      'http://127.0.0.1:8000/api/prompt/generate-code/',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
-      }
-    )
+    const data = await apiRequest(API_ENDPOINTS.GENERATE_CODE, {
+      method: 'POST',
+      body: JSON.stringify(requestPayload)
+    })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
     console.log('Received response from generate code:', data)
     return data
   }
 )
 
-// Async thunk to refine code
+// Updated async thunk to refine code using the real endpoint
 export const refineCode = createAsyncThunk(
   'codeGeneration/refineCode',
   async (payload: {
@@ -151,27 +143,9 @@ export const refineCode = createAsyncThunk(
       framework: Record<string, any>
     }
   }) => {
-    // For now, we'll use mock data since endpoint doesn't exist yet
     console.log('Refining code with payload:', payload)
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Mock refined response
-    const mockRefinedCode: GeneratedCodeResponse = {
-      explanation: `Refined version based on: "${payload.refinementFeedback}". Added improvements including better error handling, loading states, and code optimization.`,
-      files_to_modify: payload.currentVersion.files_to_modify.map(
-        (file, index) => ({
-          ...file,
-          code: `${file.code}\n\n// REFINED: ${payload.refinementFeedback}\n// Added improvements based on user feedback`,
-          description: `${file.description} (Refined with: ${payload.refinementFeedback})`
-        })
-      ),
-      additional_notes: `Previous version notes: ${payload.currentVersion.additional_notes}\n\nRefinement applied: ${payload.refinementFeedback}`
-    }
-
-    // TODO: Replace with actual API call when endpoint is ready
-    /*
+    // Combine selected files and manually added files for context
     const contextFiles = [
       ...payload.selectedRelevantFiles,
       ...payload.manuallyAddedFiles
@@ -180,34 +154,36 @@ export const refineCode = createAsyncThunk(
       content: file.content
     }))
 
-    const requestPayload: CodeRefinementPayload = {
-      current_version: payload.currentVersion,
+    // Prepare the request payload matching the Django endpoint structure
+    const requestPayload = {
+      current_version: {
+        id: payload.currentVersion.id,
+        version: payload.currentVersion.version,
+        timestamp: payload.currentVersion.timestamp,
+        explanation: payload.currentVersion.explanation,
+        files_to_modify: payload.currentVersion.files_to_modify,
+        additional_notes: payload.currentVersion.additional_notes,
+        refinement_prompt: payload.refinementFeedback
+      },
       refinement_feedback: payload.refinementFeedback,
       context_files: contextFiles,
       project_structure: payload.projectStructure
     }
 
-    const response = await fetch(
-      'http://127.0.0.1:8000/api/prompt/refine-code/',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
-      }
-    )
+    console.log('Sending refinement request:', requestPayload)
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    const data = await apiRequest(API_ENDPOINTS.REFINE_CODE, {
+      method: 'POST',
+      body: JSON.stringify(requestPayload)
+    })
+
+    console.log('Received refinement response:', data)
+
+    if (!data.success) {
+      throw new Error(data.error || 'Refinement failed')
     }
 
-    const data = await response.json()
     return data
-    */
-
-    return {
-      success: true,
-      generated_code: mockRefinedCode
-    }
   }
 )
 
@@ -255,7 +231,7 @@ const codeGenerationSlice = createSlice({
         state.loading = false
         state.error = action.error.message || 'Failed to generate code'
       })
-      // Refine Code cases
+      // Refine Code cases - Updated to handle real API response
       .addCase(refineCode.pending, (state) => {
         state.refining = true
         state.error = null
@@ -263,6 +239,7 @@ const codeGenerationSlice = createSlice({
       .addCase(refineCode.fulfilled, (state, action) => {
         state.refining = false
         if (action.payload.success) {
+          // Create new version from the refined code response
           const newVersion: GeneratedCodeVersion = {
             id: Date.now().toString(),
             version: `v1.${state.generatedCodeVersions.length}`,
@@ -275,11 +252,14 @@ const codeGenerationSlice = createSlice({
 
           state.generatedCodeVersions.push(newVersion)
           state.currentVersion = newVersion
+        } else {
+          state.error = action.payload.error || 'Refinement failed'
         }
       })
       .addCase(refineCode.rejected, (state, action) => {
         state.refining = false
         state.error = action.error.message || 'Failed to refine code'
+        console.error('Code refinement failed:', action.error)
       })
   }
 })

@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
 import { refinePrompt } from '@/features/aiCodeAssistant/promptClarification/state/promptClarificationSlice'
-import { generateCode } from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
+import {
+  generateCode,
+  clearError
+} from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 import {
   Step1PromptRefinement,
   Step2PromptClarification,
@@ -39,11 +42,13 @@ const AICodeAssistant: React.FC = () => {
   const {
     currentVersion,
     loading: codeGenerationLoading,
-    refining
+    refining,
+    error: codeGenerationError
   } = codeGenerationState
 
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [refinePromptText, setRefinePromptText] = useState<string>('')
+  const [stepErrors, setStepErrors] = useState<{ [key: number]: string }>({})
 
   const stepTitles = [
     'Refine Prompt',
@@ -51,6 +56,31 @@ const AICodeAssistant: React.FC = () => {
     'Generate & Refine Code'
   ]
   const stepColors = ['primary', 'success', 'secondary']
+
+  // Clear step error when moving to different step
+  React.useEffect(() => {
+    if (stepErrors[currentStep]) {
+      const timer = setTimeout(() => {
+        setStepErrors((prev) => ({ ...prev, [currentStep]: '' }))
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [stepErrors, currentStep])
+
+  // Clear code generation error when component mounts
+  React.useEffect(() => {
+    if (codeGenerationError) {
+      dispatch(clearError())
+    }
+  }, [])
+
+  const setStepError = (step: number, error: string) => {
+    setStepErrors((prev) => ({ ...prev, [step]: error }))
+  }
+
+  const clearStepError = (step: number) => {
+    setStepErrors((prev) => ({ ...prev, [step]: '' }))
+  }
 
   const handleNextStep = async () => {
     console.log('🔴 BUTTON CLICKED! Current step:', currentStep)
@@ -62,6 +92,9 @@ const AICodeAssistant: React.FC = () => {
       codeGenerationLoading
     })
     console.log(`🔘 handleNextStep called at step ${currentStep}`)
+
+    // Clear any existing errors for current step
+    clearStepError(currentStep)
 
     if (currentStep === 1) {
       if (userPrompt && projectFilePaths.length > 0) {
@@ -75,9 +108,19 @@ const AICodeAssistant: React.FC = () => {
           setCurrentStep(2)
         } catch (error) {
           console.error('❌ Failed to refine prompt:', error)
+          setStepError(
+            1,
+            error instanceof Error
+              ? error.message
+              : 'Failed to analyze project and generate questions'
+          )
         }
       } else {
-        alert('Please enter a prompt and select a project folder first.')
+        const missingItems = []
+        if (!userPrompt) missingItems.push('prompt')
+        if (projectFilePaths.length === 0) missingItems.push('project folder')
+
+        setStepError(1, `Please enter a ${missingItems.join(' and ')} first.`)
       }
     } else if (currentStep === 2) {
       // Prepare default values to ensure generateCode always triggers
@@ -136,12 +179,12 @@ const AICodeAssistant: React.FC = () => {
         setCurrentStep(3)
       } catch (error) {
         console.error('❌ Failed to generate code:', error)
-        console.error('❌ Error details:', error)
-        alert(
-          `Failed to generate code: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`
-        )
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to generate code. Please check your connection and try again.'
+
+        setStepError(2, errorMessage)
       }
     } else if (currentStep === 3) {
       // For step 3, we don't need to handle refinement here anymore
@@ -153,7 +196,10 @@ const AICodeAssistant: React.FC = () => {
   }
 
   const handlePrevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
+    if (currentStep > 1) {
+      clearStepError(currentStep)
+      setCurrentStep(currentStep - 1)
+    }
   }
 
   const handleStepClick = (step: number) => {
@@ -161,6 +207,7 @@ const AICodeAssistant: React.FC = () => {
       step <= currentStep ||
       (step === currentStep + 1 && canProceedToStep(step))
     ) {
+      clearStepError(currentStep)
       setCurrentStep(step)
     }
   }
@@ -236,6 +283,38 @@ const AICodeAssistant: React.FC = () => {
     return currentStep < 3
   }
 
+  const renderStepError = (step: number) => {
+    const error = stepErrors[step]
+    if (!error) return null
+
+    return (
+      <div className="alert alert-error alert-sm mb-4">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="stroke-current shrink-0 h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <div className="flex justify-between items-center w-full">
+          <span className="text-sm">{error}</span>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => clearStepError(step)}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-base-200 p-6">
       <div className="max-w-6xl mx-auto">
@@ -281,6 +360,9 @@ const AICodeAssistant: React.FC = () => {
               </h2>
             </div>
 
+            {/* Render step-specific errors */}
+            {renderStepError(currentStep)}
+
             <div className="mb-8">{renderStepContent()}</div>
 
             <div className="flex justify-between items-center">
@@ -318,9 +400,11 @@ const AICodeAssistant: React.FC = () => {
 
               {shouldShowNextButton() && (
                 <button
-                  className={`btn btn-${stepColors[currentStep - 1]}`}
+                  className={`btn btn-${stepColors[currentStep - 1]} ${
+                    stepErrors[currentStep] ? 'btn-disabled' : ''
+                  }`}
                   onClick={handleNextStep}
-                  disabled={isNextButtonDisabled()}
+                  disabled={isNextButtonDisabled() || !!stepErrors[currentStep]}
                 >
                   {clarificationLoading || codeGenerationLoading ? (
                     <>
@@ -343,6 +427,37 @@ const AICodeAssistant: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Global error display for code generation errors */}
+        {codeGenerationError && currentStep === 3 && (
+          <div className="mt-4">
+            <div className="alert alert-warning">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current shrink-0 h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.75 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+              <div>
+                <h3 className="font-bold">Code Generation Issue</h3>
+                <div className="text-xs">{codeGenerationError}</div>
+              </div>
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => dispatch(clearError())}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
