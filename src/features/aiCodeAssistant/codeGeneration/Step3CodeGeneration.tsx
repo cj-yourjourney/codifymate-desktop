@@ -5,6 +5,7 @@ import {
   setCurrentVersion,
   clearError
 } from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
+import LoadingModal from '@/shared/components/LoadingModal'
 
 interface Step3Props {
   refinePrompt: string
@@ -46,51 +47,90 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     }
   }, [dispatch])
 
+  // Loading modal for code generation
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <span className="loading loading-spinner loading-lg"></span>
-        <span className="ml-4">Generating code...</span>
-      </div>
+      <LoadingModal
+        isOpen={true}
+        title="Generating Code"
+        message="AI is creating optimized code based on your requirements..."
+        steps={[
+          'Analyzing requirements',
+          'Processing context files',
+          'Generating code structure',
+          'Optimizing implementation',
+          'Finalizing output'
+        ]}
+        currentStep={3}
+        progress={65}
+      />
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <div className="alert alert-error">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="stroke-current shrink-0 h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div>
-            <h3 className="font-bold">Error occurred!</h3>
-            <div className="text-xs">{error}</div>
+      <div className="space-y-6">
+        <div className="card bg-base-100 shadow-lg border border-error/20">
+          <div className="card-body text-center py-8">
+            <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-8 h-8 text-error"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.75 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-error mb-2">
+              Generation Failed
+            </h3>
+            <p className="text-sm text-base-content/60 mb-4">{error}</p>
+            <button
+              className="btn btn-outline btn-error"
+              onClick={() => dispatch(clearError())}
+            >
+              Try Again
+            </button>
           </div>
         </div>
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={() => dispatch(clearError())}
-        >
-          Clear Error
-        </button>
       </div>
     )
   }
 
   if (!currentVersion) {
     return (
-      <div className="text-center py-8 text-base-content/60">
-        No code generated yet. Please complete the previous steps first.
+      <div className="card bg-base-100 shadow-lg border border-base-200">
+        <div className="card-body text-center py-12">
+          <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-8 h-8 text-warning"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-base-content mb-2">
+            No Code Generated
+          </h3>
+          <p className="text-base-content/60">
+            Please complete the previous steps to generate code.
+          </p>
+        </div>
       </div>
     )
   }
@@ -180,31 +220,6 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     }
   }
 
-  const formatVersionHistory = () => {
-    // Reverse the array to show latest version first
-    return [...generatedCodeVersions].reverse().map((version, index) => {
-      const isLatest = version.id === currentVersion?.id
-      const alertType = isLatest ? 'alert-success' : 'alert-info'
-      const { date, time } = formatTimestamp(version.timestamp)
-
-      return (
-        <div key={version.id} className={`alert ${alertType} alert-sm`}>
-          <div className="text-sm">
-            <span className="font-semibold">{version.version}:</span>{' '}
-            {version.explanation.substring(0, 80)}
-            {version.explanation.length > 80 ? '...' : ''}
-            <div className="text-xs opacity-70 mt-1">
-              {date} at {time}
-              {version.refinement_prompt && (
-                <span className="ml-2 badge badge-xs">Refined</span>
-              )}
-            </div>
-          </div>
-        </div>
-      )
-    })
-  }
-
   const getQuickActionPrompt = (action: string) => {
     const prompts = {
       comments: 'Add comprehensive comments and documentation to the code',
@@ -226,258 +241,548 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* Refinement Loading Modal */}
+      <LoadingModal
+        isOpen={refining}
+        title="Refining Code"
+        message="AI is improving your code based on your feedback..."
+        steps={[
+          'Analyzing feedback',
+          'Applying improvements',
+          'Optimizing changes',
+          'Finalizing refinements'
+        ]}
+        currentStep={2}
+        progress={75}
+      />
+
       {/* Notification Toast */}
       {notification.type && (
         <div
-          className={`alert ${
+          className={`alert shadow-lg ${
             notification.type === 'success' ? 'alert-success' : 'alert-error'
-          } alert-sm`}
+          }`}
         >
           <div className="flex justify-between items-center w-full">
-            <span>{notification.message}</span>
+            <div className="flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current flex-shrink-0 h-6 w-6 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                {notification.type === 'success' ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                )}
+              </svg>
+              <span className="text-sm">{notification.message}</span>
+            </div>
             <button
-              className="btn btn-ghost btn-xs"
+              className="btn btn-ghost btn-sm"
               onClick={() => setNotification({ type: null, message: '' })}
             >
-              ✕
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </button>
           </div>
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Generated Code</h3>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() =>
-                copyToClipboard(
-                  currentVersion.files_to_modify.map((f) => f.code).join('\n\n')
-                )
-              }
-            >
-              📋 Copy All
-            </button>
-          </div>
+      <div className="grid xl:grid-cols-3 gap-8">
+        {/* Generated Code Section - Takes 2 columns */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="card bg-base-100 shadow-lg border border-base-200">
+            <div className="card-body p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center mr-3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5 text-success"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-base-content">
+                      Generated Code
+                    </h3>
+                    <p className="text-sm text-base-content/60">
+                      {currentVersion.files_to_modify.length} files generated
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() =>
+                    copyToClipboard(
+                      currentVersion.files_to_modify
+                        .map((f) => f.code)
+                        .join('\n\n')
+                    )
+                  }
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Copy All
+                </button>
+              </div>
 
-          {/* Version Selector */}
-          {generatedCodeVersions.length > 1 && (
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Version History</span>
-                <span className="label-text-alt text-xs">
-                  {generatedCodeVersions.length} version
-                  {generatedCodeVersions.length !== 1 ? 's' : ''}
-                </span>
-              </label>
-              <select
-                className="select select-bordered select-sm"
-                value={currentVersion.id}
-                onChange={(e) => handleVersionChange(e.target.value)}
-                disabled={refining}
-              >
-                {[...generatedCodeVersions].reverse().map((version) => {
-                  const { date, time } = formatTimestamp(version.timestamp)
-                  return (
-                    <option key={version.id} value={version.id}>
-                      {version.version} - {date} at {time}
-                      {version.refinement_prompt ? ' (Refined)' : ''}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
-          )}
-
-          <div className="alert alert-info">
-            <div>
-              <h4 className="font-semibold mb-2">AI Explanation</h4>
-              <p className="text-sm opacity-90">{currentVersion.explanation}</p>
-              {currentVersion.additional_notes && (
-                <div className="mt-2">
-                  <h5 className="font-medium text-xs opacity-75">
-                    Additional Notes:
-                  </h5>
-                  <p className="text-xs opacity-70">
-                    {currentVersion.additional_notes}
-                  </p>
+              {/* Version Selector */}
+              {generatedCodeVersions.length > 1 && (
+                <div className="mb-6">
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">
+                        Version History
+                      </span>
+                      <span className="label-text-alt badge badge-neutral badge-sm">
+                        {generatedCodeVersions.length} versions
+                      </span>
+                    </label>
+                    <select
+                      className="select select-bordered focus:select-primary"
+                      value={currentVersion.id}
+                      onChange={(e) => handleVersionChange(e.target.value)}
+                      disabled={refining}
+                    >
+                      {[...generatedCodeVersions].reverse().map((version) => {
+                        const { date, time } = formatTimestamp(
+                          version.timestamp
+                        )
+                        return (
+                          <option key={version.id} value={version.id}>
+                            {version.version} - {date} at {time}
+                            {version.refinement_prompt ? ' (Refined)' : ''}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
                 </div>
               )}
-              {currentVersion.refinement_prompt && (
-                <div className="mt-2">
-                  <h5 className="font-medium text-xs opacity-75">
-                    Last Refinement:
-                  </h5>
-                  <p className="text-xs opacity-70">
-                    {currentVersion.refinement_prompt}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
 
-          <div className="space-y-4">
-            {currentVersion.files_to_modify.map((file, index) => (
-              <div key={index} className="mockup-code">
-                <div className="flex items-center justify-between px-6 py-2 bg-neutral text-neutral-content">
-                  <div className="flex items-center">
-                    <span className="mr-2">📄</span>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {file.file_path.split('/').pop()}
-                      </span>
-                      <span className="text-xs opacity-70">
-                        {file.change_type} • {file.file_path}
-                      </span>
+              {/* AI Explanation */}
+              <div className="mb-6 p-4 bg-info/10 rounded-lg border border-info/20">
+                <div className="flex items-start">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 text-info mr-3 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                  <div className="text-sm text-info">
+                    <div className="font-semibold mb-2">AI Explanation</div>
+                    <p className="leading-relaxed">
+                      {currentVersion.explanation}
+                    </p>
+                    {currentVersion.additional_notes && (
+                      <div className="mt-3 pt-3 border-t border-info/20">
+                        <div className="font-medium mb-1">
+                          Additional Notes:
+                        </div>
+                        <p className="text-info/80">
+                          {currentVersion.additional_notes}
+                        </p>
+                      </div>
+                    )}
+                    {currentVersion.refinement_prompt && (
+                      <div className="mt-3 pt-3 border-t border-info/20">
+                        <div className="font-medium mb-1">Last Refinement:</div>
+                        <p className="text-info/80">
+                          {currentVersion.refinement_prompt}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Code Files */}
+              <div className="space-y-6">
+                {currentVersion.files_to_modify.map((file, index) => (
+                  <div
+                    key={index}
+                    className="border border-base-300 rounded-lg overflow-hidden"
+                  >
+                    {/* File Header */}
+                    <div className="bg-neutral text-neutral-content px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-neutral-content/10 rounded-md flex items-center justify-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-sm">
+                              {file.file_path.split('/').pop()}
+                            </div>
+                            <div className="text-xs opacity-70 flex items-center space-x-2">
+                              <span
+                                className={`badge badge-xs ${
+                                  file.change_type === 'create'
+                                    ? 'badge-success'
+                                    : file.change_type === 'modify'
+                                    ? 'badge-warning'
+                                    : 'badge-info'
+                                }`}
+                              >
+                                {file.change_type}
+                              </span>
+                              <span>{file.file_path}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => copyToClipboard(file.code)}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* File Description */}
+                    <div className="px-4 py-2 bg-base-100 border-b border-base-300">
+                      <p className="text-sm text-base-content/70">
+                        {file.description}
+                      </p>
+                    </div>
+
+                    {/* Code Content */}
+                    <div className="bg-base-200">
+                      <pre className="px-4 py-3 overflow-x-auto text-sm max-h-96 text-base-content">
+                        <code>{file.code}</code>
+                      </pre>
                     </div>
                   </div>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => copyToClipboard(file.code)}
-                  >
-                    📋
-                  </button>
-                </div>
-                <div className="px-6 py-2 bg-base-300">
-                  <p className="text-xs text-base-content/70">
-                    {file.description}
-                  </p>
-                </div>
-                <pre className="px-6 py-4 overflow-x-auto text-sm max-h-96">
-                  <code>{file.code}</code>
-                </pre>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
+        {/* Refinement Panel - Takes 1 column */}
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold">Refine & Improve</h3>
-
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">
-                Feedback and Refinement Instructions
-              </span>
-              <span className="label-text-alt text-xs">
-                {refinePrompt.length}/500
-              </span>
-            </label>
-            <textarea
-              className="textarea textarea-bordered h-32 resize-none"
-              placeholder="e.g., Add loading states, improve error handling, optimize performance..."
-              value={refinePrompt}
-              onChange={(e) => setRefinePrompt(e.target.value.slice(0, 500))}
-              disabled={refining}
-              maxLength={500}
-            />
-            <div className="label">
-              <span className="label-text-alt text-xs opacity-70">
-                💡 Tip: Be specific about what you want to change or improve
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              className="btn btn-warning flex-1"
-              onClick={handleRefineCode}
-              disabled={refining || !refinePrompt.trim()}
-            >
-              {refining ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  Refining...
-                </>
-              ) : (
-                <>🔄 Refine Code</>
-              )}
-            </button>
-            <button
-              className="btn btn-outline"
-              onClick={() => setRefinePrompt('')}
-              disabled={refining}
-            >
-              ↻ Clear
-            </button>
-          </div>
-
-          <div className="divider"></div>
-          <div>
-            <h4 className="font-semibold mb-3">Version History</h4>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {generatedCodeVersions.length > 0 ? (
-                formatVersionHistory()
-              ) : (
-                <div className="text-center py-4 text-base-content/60 text-sm">
-                  No version history yet
+          {/* Refinement Input */}
+          <div className="card bg-base-100 shadow-lg border border-base-200">
+            <div className="card-body p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 text-warning"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
                 </div>
-              )}
+                <div>
+                  <h3 className="text-lg font-semibold text-base-content">
+                    Refine Code
+                  </h3>
+                  <p className="text-sm text-base-content/60">
+                    Improve and customize
+                  </p>
+                </div>
+              </div>
+
+              <div className="form-control mb-4">
+                <textarea
+                  className="textarea textarea-bordered h-32 text-sm resize-none focus:textarea-warning transition-colors"
+                  placeholder="e.g., Add loading states, improve error handling, optimize performance, add TypeScript types..."
+                  value={refinePrompt}
+                  onChange={(e) =>
+                    setRefinePrompt(e.target.value.slice(0, 500))
+                  }
+                  disabled={refining}
+                  maxLength={500}
+                />
+                <div className="label">
+                  <span className="label-text-alt text-base-content/50">
+                    {refinePrompt.length}/500
+                  </span>
+                  <span className="label-text-alt text-base-content/50">
+                    💡 Be specific for better results
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-warning flex-1"
+                  onClick={handleRefineCode}
+                  disabled={refining || !refinePrompt.trim()}
+                >
+                  {refining ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm mr-2"></span>
+                      Refining...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Refine
+                    </>
+                  )}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setRefinePrompt('')}
+                  disabled={refining}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="divider"></div>
-          <div>
-            <h4 className="font-semibold mb-3">Quick Actions</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('comments')}
-                disabled={refining}
-              >
-                📝 Add Comments
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('styling')}
-                disabled={refining}
-              >
-                🎨 Improve Styling
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('performance')}
-                disabled={refining}
-              >
-                ⚡ Optimize Performance
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('error-handling')}
-                disabled={refining}
-              >
-                🛡️ Add Error Handling
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('testing')}
-                disabled={refining}
-              >
-                🧪 Add Tests
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('accessibility')}
-                disabled={refining}
-              >
-                ♿ Accessibility
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('security')}
-                disabled={refining}
-              >
-                🔒 Security
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleQuickAction('mobile')}
-                disabled={refining}
-              >
-                📱 Mobile Ready
-              </button>
+          {/* Quick Actions */}
+          <div className="card bg-base-100 shadow-lg border border-base-200">
+            <div className="card-body p-6">
+              <h4 className="font-semibold mb-4 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 mr-2 text-accent"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                Quick Actions
+              </h4>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { key: 'comments', label: 'Add Comments', icon: '📝' },
+                  { key: 'styling', label: 'Improve Styling', icon: '🎨' },
+                  {
+                    key: 'performance',
+                    label: 'Optimize Performance',
+                    icon: '⚡'
+                  },
+                  {
+                    key: 'error-handling',
+                    label: 'Error Handling',
+                    icon: '🛡️'
+                  },
+                  { key: 'testing', label: 'Add Tests', icon: '🧪' },
+                  { key: 'accessibility', label: 'Accessibility', icon: '♿' },
+                  { key: 'security', label: 'Security', icon: '🔒' },
+                  { key: 'mobile', label: 'Mobile Ready', icon: '📱' }
+                ].map((action) => (
+                  <button
+                    key={action.key}
+                    className="btn btn-outline btn-sm justify-start"
+                    onClick={() => handleQuickAction(action.key)}
+                    disabled={refining}
+                  >
+                    <span className="mr-2">{action.icon}</span>
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Version History */}
+          <div className="card bg-base-100 shadow-lg border border-base-200">
+            <div className="card-body p-6">
+              <h4 className="font-semibold mb-4 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 mr-2 text-neutral"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Version History
+              </h4>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {generatedCodeVersions.length > 0 ? (
+                  [...generatedCodeVersions].reverse().map((version, index) => {
+                    const isLatest = version.id === currentVersion?.id
+                    const { date, time } = formatTimestamp(version.timestamp)
+
+                    return (
+                      <div
+                        key={version.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          isLatest
+                            ? 'border-primary/30 bg-primary/5'
+                            : 'border-base-300 bg-base-50 hover:border-primary/20'
+                        }`}
+                        onClick={() => handleVersionChange(version.id)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span
+                            className={`font-semibold text-sm ${
+                              isLatest ? 'text-primary' : 'text-base-content'
+                            }`}
+                          >
+                            {version.version}
+                          </span>
+                          {version.refinement_prompt && (
+                            <span className="badge badge-xs badge-accent">
+                              Refined
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-base-content/60 mb-2 line-clamp-2">
+                          {version.explanation.substring(0, 100)}
+                          {version.explanation.length > 100 ? '...' : ''}
+                        </p>
+                        <div className="text-xs text-base-content/50">
+                          {date} at {time}
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-6 text-base-content/60">
+                    <div className="w-12 h-12 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-sm">No version history yet</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

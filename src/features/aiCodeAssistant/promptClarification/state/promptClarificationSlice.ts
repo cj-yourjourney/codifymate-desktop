@@ -147,19 +147,33 @@ const promptClarificationSlice = createSlice({
     },
     toggleRelevantFile: (
       state,
-      action: PayloadAction<{ filePath: string; content?: string }>
+      action: PayloadAction<{
+        filePath: string
+        content?: string
+        action?: 'add' | 'remove'
+      }>
     ) => {
-      const { filePath, content } = action.payload
+      const { filePath, content, action: actionType } = action.payload
       const existingIndex = state.selectedRelevantFiles.findIndex(
         (file) => file.filePath === filePath
       )
 
-      if (existingIndex !== -1) {
-        // File is already selected, remove it
-        state.selectedRelevantFiles.splice(existingIndex, 1)
-      } else if (content !== undefined) {
-        // File is not selected and we have content, add it
-        state.selectedRelevantFiles.push({ filePath, content })
+      if (
+        actionType === 'remove' ||
+        (actionType === undefined && existingIndex !== -1)
+      ) {
+        // Remove file if explicitly requested or if it exists and no action specified (legacy behavior)
+        if (existingIndex !== -1) {
+          state.selectedRelevantFiles.splice(existingIndex, 1)
+        }
+      } else if (
+        actionType === 'add' ||
+        (actionType === undefined && existingIndex === -1)
+      ) {
+        // Add file if explicitly requested or if it doesn't exist and no action specified (legacy behavior)
+        if (existingIndex === -1 && content !== undefined) {
+          state.selectedRelevantFiles.push({ filePath, content })
+        }
       }
     },
     setFileLoading: (state, action: PayloadAction<boolean>) => {
