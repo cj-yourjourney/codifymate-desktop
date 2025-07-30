@@ -69,10 +69,10 @@ const Step1PromptRefinement: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-base-content">
-                Describe Your Project
+                Write Your Prompt
               </h3>
               <p className="text-sm text-base-content/60">
-                Tell us what you want to build
+                Describe what you want the AI to help you build
               </p>
             </div>
           </div>
@@ -90,7 +90,7 @@ const Step1PromptRefinement: React.FC = () => {
                 {userPrompt.length} characters
               </span>
               <span className="text-xs text-base-content/50">
-                💡 Be specific for better results
+                💡 Be specific and detailed for better results
               </span>
             </div>
           </div>
@@ -106,10 +106,10 @@ const Step1PromptRefinement: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-base-content">
-                Project Location
+                Select Project Folder
               </h3>
               <p className="text-sm text-base-content/60">
-                Select your project folder
+                Choose the project folder you want to work on
               </p>
             </div>
           </div>
@@ -172,10 +172,10 @@ const Step1PromptRefinement: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-base-content">
-                    Project Files
+                    Project Files Found
                   </h3>
                   <p className="text-sm text-base-content/60">
-                    Found {projectFilePaths.length} files
+                    {projectFilePaths.length} files detected in your project
                   </p>
                 </div>
               </div>
@@ -220,10 +220,12 @@ const Step1PromptRefinement: React.FC = () => {
                 <div className="flex items-start">
                   <Info className="w-5 h-5 text-primary mr-2 mt-0.5" />
                   <div className="text-sm text-primary">
-                    <div className="font-medium">Ready for analysis</div>
+                    <div className="font-medium">
+                      Ready for prompt refinement
+                    </div>
                     <div className="text-primary/80">
-                      Your project files have been scanned and are ready for AI
-                      analysis.
+                      Your project context is loaded. The AI can now help refine
+                      your prompt based on your project structure.
                     </div>
                   </div>
                 </div>

@@ -45,7 +45,7 @@ const AICodeAssistant: React.FC = () => {
   const [stepErrors, setStepErrors] = useState<{ [key: number]: string }>({})
 
   const stepTitles = [
-    'Define Requirements',
+    'Write Prompt',
     'Clarify & Configure',
     'Generate & Refine'
   ]
@@ -252,7 +252,7 @@ const AICodeAssistant: React.FC = () => {
   const getStepButtonText = () => {
     switch (currentStep) {
       case 1:
-        return 'Analyze Project & Generate Questions'
+        return 'Refine Prompt & Context Files'
       case 2:
         return 'Generate Code'
       case 3:
@@ -539,7 +539,7 @@ const AICodeAssistant: React.FC = () => {
                 </div>
                 <p className="text-base-content/60">
                   {currentStep === 1 &&
-                    'Define your project requirements and select the target folder'}
+                    'Write your prompt and select the project folder to work on'}
                   {currentStep === 2 &&
                     'Answer questions and select relevant files for context'}
                   {currentStep === 3 &&
