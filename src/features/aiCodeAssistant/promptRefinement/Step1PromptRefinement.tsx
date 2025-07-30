@@ -1,6 +1,6 @@
 // components/Step1PromptRefinement.tsx (updated)
 import React from 'react'
-import { Edit3, Folder, FileText, RefreshCw, Info } from 'lucide-react'
+import { Edit3, Folder, FileText, Info } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
 import {
   setUserPrompt,
@@ -28,12 +28,6 @@ const Step1PromptRefinement: React.FC = () => {
 
   const handleFolderInputChange = (value: string) => {
     dispatch(setSelectedFolder(value))
-  }
-
-  const handleGetProjectFiles = () => {
-    if (selectedFolder) {
-      dispatch(getProjectFiles(selectedFolder))
-    }
   }
 
   return (
@@ -134,27 +128,10 @@ const Step1PromptRefinement: React.FC = () => {
             </div>
 
             {selectedFolder && (
-              <div className="mt-4 flex justify-between items-center">
+              <div className="mt-4">
                 <div className="text-sm text-base-content/60">
                   Selected: {selectedFolder}
                 </div>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={handleGetProjectFiles}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm mr-2"></span>
-                      Scanning...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Refresh Files
-                    </>
-                  )}
-                </button>
               </div>
             )}
           </div>
