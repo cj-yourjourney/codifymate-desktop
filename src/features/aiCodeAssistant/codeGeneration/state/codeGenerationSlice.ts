@@ -225,6 +225,8 @@ const codeGenerationSlice = createSlice({
 
           state.generatedCodeVersions.push(newVersion)
           state.currentVersion = newVersion
+        } else {
+          state.error = action.payload.error || 'Code generation failed'
         }
       })
       .addCase(generateCode.rejected, (state, action) => {
@@ -238,7 +240,7 @@ const codeGenerationSlice = createSlice({
       })
       .addCase(refineCode.fulfilled, (state, action) => {
         state.refining = false
-        if (action.payload.success) {
+        if (action.payload.success && action.payload.generated_code) {
           // Create new version from the refined code response
           const newVersion: GeneratedCodeVersion = {
             id: Date.now().toString(),
