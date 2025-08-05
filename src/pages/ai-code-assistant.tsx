@@ -49,6 +49,7 @@ const AICodeAssistant: React.FC = () => {
     'Clarify & Configure',
     'Generate & Refine'
   ]
+  
 
   const stepIcons = [
     <svg
@@ -333,39 +334,23 @@ const AICodeAssistant: React.FC = () => {
     )
   }
 
-  const getLoadingSteps = () => {
+  const getLoadingConfig = () => {
     if (currentStep === 1 && clarificationLoading) {
       return {
         title: 'Analyzing Your Project',
         message:
-          'AI is analyzing your project structure and generating clarifying questions...',
-        steps: [
-          'Scanning project files',
-          'Analyzing code structure',
-          'Identifying patterns',
-          'Generating questions'
-        ],
-        currentStep: 2
+          'AI is analyzing your project structure and generating clarifying questions...'
       }
     } else if (currentStep === 2 && codeGenerationLoading) {
       return {
         title: 'Generating Code',
-        message: 'AI is creating optimized code based on your requirements...',
-        steps: [
-          'Processing requirements',
-          'Analyzing context files',
-          'Generating code structure',
-          'Optimizing implementation',
-          'Finalizing output'
-        ],
-        currentStep: 3,
-        progress: 65
+        message: 'AI is creating optimized code based on your requirements...'
       }
     }
     return null
   }
 
-  const loadingConfig = getLoadingSteps()
+  const loadingConfig = getLoadingConfig()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-200 to-base-300">
@@ -375,9 +360,6 @@ const AICodeAssistant: React.FC = () => {
           isOpen={clarificationLoading || codeGenerationLoading}
           title={loadingConfig.title}
           message={loadingConfig.message}
-          steps={loadingConfig.steps}
-          currentStep={loadingConfig.currentStep}
-          progress={loadingConfig.progress}
         />
       )}
 

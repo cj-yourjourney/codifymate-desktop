@@ -48,24 +48,15 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
   }, [dispatch])
 
   // Loading modal for code generation
-  if (loading) {
-    return (
-      <LoadingModal
-        isOpen={true}
-        title="Generating Code"
-        message="AI is creating optimized code based on your requirements..."
-        steps={[
-          'Analyzing requirements',
-          'Processing context files',
-          'Generating code structure',
-          'Optimizing implementation',
-          'Finalizing output'
-        ]}
-        currentStep={3}
-        progress={65}
-      />
-    )
-  }
+ if (loading) {
+   return (
+     <LoadingModal
+       isOpen={true}
+       title="Generating Code"
+       message="AI is creating optimized code based on your requirements..."
+     />
+   )
+ }
 
   if (error) {
     return (
@@ -247,14 +238,6 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
         isOpen={refining}
         title="Refining Code"
         message="AI is improving your code based on your feedback..."
-        steps={[
-          'Analyzing feedback',
-          'Applying improvements',
-          'Optimizing changes',
-          'Finalizing refinements'
-        ]}
-        currentStep={2}
-        progress={75}
       />
 
       {/* Notification Toast */}

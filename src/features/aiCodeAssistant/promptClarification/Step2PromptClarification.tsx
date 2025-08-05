@@ -98,22 +98,15 @@ const Step2PromptClarification: React.FC = () => {
   }
 
   // Loading modal for analysis
-  if (loading) {
-    return (
-      <LoadingModal
-        isOpen={true}
-        title="Analyzing Your Project"
-        message="AI is analyzing your project structure and generating clarifying questions..."
-        steps={[
-          'Scanning project files',
-          'Analyzing code structure',
-          'Identifying patterns',
-          'Generating questions'
-        ]}
-        currentStep={2}
-      />
-    )
-  }
+ if (loading) {
+   return (
+     <LoadingModal
+       isOpen={true}
+       title="Analyzing Your Project"
+       message="AI is analyzing your project structure and generating clarifying questions..."
+     />
+   )
+ }
 
   if (error) {
     return (
@@ -182,7 +175,6 @@ const Step2PromptClarification: React.FC = () => {
         isOpen={fileLoading}
         title="Reading Files"
         message="Loading file content for analysis..."
-        progress={60}
       />
 
       {/* Progress Overview */}
