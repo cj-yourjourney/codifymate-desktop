@@ -186,7 +186,7 @@ const Step2PromptClarification: React.FC = () => {
       />
 
       {/* Progress Overview */}
-      <div className="card bg-gradient-to-r from-primary/5 to-secondary/5 shadow-lg border border-base-200">
+      <div className="card bg-gradient-to-r from-primary/5 to-primary/5 shadow-lg border border-base-200">
         <div className="card-body p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -256,7 +256,7 @@ const Step2PromptClarification: React.FC = () => {
                   key={index}
                   className={`border rounded-lg transition-all ${
                     isAnswered
-                      ? 'border-success/30 bg-success/5'
+                      ? 'border-primary/30 bg-primary/5'
                       : 'border-base-300 bg-base-50'
                   }`}
                 >
@@ -266,7 +266,7 @@ const Step2PromptClarification: React.FC = () => {
                         <div
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-1 ${
                             isAnswered
-                              ? 'bg-success text-success-content'
+                              ? 'bg-primary text-primary-content'
                               : 'bg-base-300 text-base-content/60'
                           }`}
                         >
@@ -295,7 +295,7 @@ const Step2PromptClarification: React.FC = () => {
                       <textarea
                         className={`textarea textarea-bordered w-full text-sm resize-none transition-colors ${
                           isAnswered
-                            ? 'textarea-success'
+                            ? 'textarea-primary'
                             : 'focus:textarea-primary'
                         }`}
                         rows={3}
@@ -318,10 +318,10 @@ const Step2PromptClarification: React.FC = () => {
       <div className="card bg-base-100 shadow-lg border border-base-200">
         <div className="card-body p-6">
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center mr-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-secondary"
+                className="w-5 h-5 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -345,7 +345,7 @@ const Step2PromptClarification: React.FC = () => {
           </div>
 
           <textarea
-            className="textarea textarea-bordered w-full h-24 text-base resize-none focus:textarea-secondary transition-colors"
+            className="textarea textarea-bordered w-full h-24 text-base resize-none focus:textarea-primary transition-colors"
             placeholder="Add any additional context, specific requirements, constraints, or notes that would help generate better code..."
             value={additionalNotes}
             onChange={(e) => handleAdditionalNotesChange(e.target.value)}
@@ -364,10 +364,10 @@ const Step2PromptClarification: React.FC = () => {
         <div className="card-body p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center mr-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 text-accent"
+                  className="w-5 h-5 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -390,11 +390,11 @@ const Step2PromptClarification: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="badge badge-accent badge-lg">
+              <div className="badge badge-primary badge-lg">
                 {allFiles.length} selected
               </div>
               <button
-                className="btn btn-outline btn-sm"
+                className="btn btn-outline btn-primary btn-sm"
                 onClick={handleAddFiles}
                 disabled={fileLoading}
               >
@@ -527,7 +527,7 @@ const Step2PromptClarification: React.FC = () => {
             {/* Manually Added Files */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-secondary flex items-center">
+                <h4 className="font-semibold text-primary flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="w-4 h-4 mr-2"
@@ -551,14 +551,14 @@ const Step2PromptClarification: React.FC = () => {
                   manuallyAddedFiles.map((file, index) => (
                     <div
                       key={`manual-${index}`}
-                      className="p-3 rounded-lg border border-secondary/30 bg-secondary/5"
+                      className="p-3 rounded-lg border border-primary/30 bg-primary/5"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center flex-1 min-w-0">
-                          <div className="w-8 h-8 bg-secondary/10 rounded-md flex items-center justify-center mr-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="w-4 h-4 text-secondary"
+                              className="w-4 h-4 text-primary"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -625,7 +625,7 @@ const Step2PromptClarification: React.FC = () => {
                     </div>
                     <p className="text-sm mb-3">No manually added files</p>
                     <button
-                      className="btn btn-outline btn-sm"
+                      className="btn btn-outline btn-primary btn-sm"
                       onClick={handleAddFiles}
                       disabled={fileLoading}
                     >
@@ -653,11 +653,11 @@ const Step2PromptClarification: React.FC = () => {
 
           {/* File Summary */}
           {allFiles.length > 0 && (
-            <div className="mt-6 p-4 bg-success/10 rounded-lg border border-success/20">
+            <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
               <div className="flex items-start">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 text-success mr-3 mt-0.5"
+                  className="w-5 h-5 text-primary mr-3 mt-0.5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -669,14 +669,14 @@ const Step2PromptClarification: React.FC = () => {
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <div className="text-sm text-success">
+                <div className="text-sm text-primary">
                   <div className="font-semibold mb-1">Context Ready</div>
-                  <div className="text-success/80">
+                  <div className="text-primary/80">
                     {allFiles.length} files selected (
                     {selectedRelevantFiles.length} AI suggested +{' '}
                     {manuallyAddedFiles.length} manually added)
                   </div>
-                  <div className="text-success/70 text-xs mt-1">
+                  <div className="text-primary/70 text-xs mt-1">
                     File content is loaded and ready for code generation
                   </div>
                 </div>

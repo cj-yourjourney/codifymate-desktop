@@ -436,7 +436,7 @@ const AICodeAssistant: React.FC = () => {
                         isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
                       } ${
                         isCompleted
-                          ? 'border-success bg-success text-success-content shadow-lg'
+                          ? 'border-primary bg-primary text-primary-content shadow-lg'
                           : isActive
                           ? 'border-primary bg-primary text-primary-content shadow-lg scale-110'
                           : 'border-base-300 bg-base-100 text-base-content/50'
@@ -467,7 +467,7 @@ const AICodeAssistant: React.FC = () => {
                           isActive
                             ? 'text-primary'
                             : isCompleted
-                            ? 'text-success'
+                            ? 'text-primary'
                             : 'text-base-content/60'
                         }`}
                       >
@@ -478,7 +478,7 @@ const AICodeAssistant: React.FC = () => {
                           isActive
                             ? 'text-primary/80'
                             : isCompleted
-                            ? 'text-success/80'
+                            ? 'text-primary/80'
                             : 'text-base-content/50'
                         }`}
                       >
@@ -491,7 +491,7 @@ const AICodeAssistant: React.FC = () => {
                       <div
                         className={`absolute left-12 top-6 w-8 h-0.5 transition-colors ${
                           currentStep > stepNumber
-                            ? 'bg-success'
+                            ? 'bg-primary'
                             : 'bg-base-300'
                         }`}
                         style={{ transform: 'translateX(1rem)' }}
@@ -509,15 +509,7 @@ const AICodeAssistant: React.FC = () => {
           <div className="card-body p-8">
             {/* Step Header */}
             <div className="flex items-center mb-8">
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${
-                  currentStep === 1
-                    ? 'bg-primary/10'
-                    : currentStep === 2
-                    ? 'bg-success/10'
-                    : 'bg-secondary/10'
-                }`}
-              >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mr-4">
                 {stepIcons[currentStep - 1]}
               </div>
               <div>
@@ -525,15 +517,7 @@ const AICodeAssistant: React.FC = () => {
                   <h2 className="text-2xl font-bold text-base-content">
                     {stepTitles[currentStep - 1]}
                   </h2>
-                  <div
-                    className={`badge badge-lg ${
-                      currentStep === 1
-                        ? 'badge-primary'
-                        : currentStep === 2
-                        ? 'badge-success'
-                        : 'badge-secondary'
-                    }`}
-                  >
+                  <div className="badge badge-lg badge-primary">
                     Step {currentStep} of {stepTitles.length}
                   </div>
                 </div>
@@ -590,13 +574,9 @@ const AICodeAssistant: React.FC = () => {
                     key={index}
                     className={`w-3 h-3 rounded-full transition-all ${
                       currentStep === index + 1
-                        ? currentStep === 1
-                          ? 'bg-primary scale-125'
-                          : currentStep === 2
-                          ? 'bg-success scale-125'
-                          : 'bg-secondary scale-125'
+                        ? 'bg-primary scale-125'
                         : currentStep > index + 1
-                        ? 'bg-success'
+                        ? 'bg-primary'
                         : 'bg-base-300'
                     }`}
                     onClick={() => handleStepClick(index + 1)}
@@ -609,13 +589,9 @@ const AICodeAssistant: React.FC = () => {
 
               {shouldShowNextButton() ? (
                 <button
-                  className={`btn ${
-                    currentStep === 1
-                      ? 'btn-primary'
-                      : currentStep === 2
-                      ? 'btn-success'
-                      : 'btn-secondary'
-                  } ${stepErrors[currentStep] ? 'btn-disabled' : ''}`}
+                  className={`btn btn-primary ${
+                    stepErrors[currentStep] ? 'btn-disabled' : ''
+                  }`}
                   onClick={handleNextStep}
                   disabled={isNextButtonDisabled() || !!stepErrors[currentStep]}
                 >
@@ -647,7 +623,7 @@ const AICodeAssistant: React.FC = () => {
                   )}
                 </button>
               ) : (
-                <div className="flex items-center text-success">
+                <div className="flex items-center text-primary">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="w-5 h-5 mr-2"

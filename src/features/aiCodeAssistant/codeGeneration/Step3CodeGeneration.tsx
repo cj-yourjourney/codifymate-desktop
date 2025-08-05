@@ -320,10 +320,10 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
             <div className="card-body p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="w-5 h-5 text-success"
+                      className="w-5 h-5 text-primary"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -346,7 +346,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                   </div>
                 </div>
                 <button
-                  className="btn btn-outline btn-sm"
+                  className="btn btn-outline btn-primary btn-sm"
                   onClick={() =>
                     copyToClipboard(
                       currentVersion.files_to_modify
@@ -381,7 +381,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                       <span className="label-text font-medium">
                         Version History
                       </span>
-                      <span className="label-text-alt badge badge-neutral badge-sm">
+                      <span className="label-text-alt badge badge-primary badge-sm">
                         {generatedCodeVersions.length} versions
                       </span>
                     </label>
@@ -408,11 +408,11 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
               )}
 
               {/* AI Explanation */}
-              <div className="mb-6 p-4 bg-info/10 rounded-lg border border-info/20">
+              <div className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
                 <div className="flex items-start">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5 text-info mr-3 mt-0.5"
+                    className="w-5 h-5 text-primary mr-3 mt-0.5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -424,25 +424,25 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                       d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                     />
                   </svg>
-                  <div className="text-sm text-info">
+                  <div className="text-sm text-primary">
                     <div className="font-semibold mb-2">AI Explanation</div>
                     <p className="leading-relaxed">
                       {currentVersion.explanation}
                     </p>
                     {currentVersion.additional_notes && (
-                      <div className="mt-3 pt-3 border-t border-info/20">
+                      <div className="mt-3 pt-3 border-t border-primary/20">
                         <div className="font-medium mb-1">
                           Additional Notes:
                         </div>
-                        <p className="text-info/80">
+                        <p className="text-primary/80">
                           {currentVersion.additional_notes}
                         </p>
                       </div>
                     )}
                     {currentVersion.refinement_prompt && (
-                      <div className="mt-3 pt-3 border-t border-info/20">
+                      <div className="mt-3 pt-3 border-t border-primary/20">
                         <div className="font-medium mb-1">Last Refinement:</div>
-                        <p className="text-info/80">
+                        <p className="text-primary/80">
                           {currentVersion.refinement_prompt}
                         </p>
                       </div>
@@ -486,10 +486,10 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                               <span
                                 className={`badge badge-xs ${
                                   file.change_type === 'create'
-                                    ? 'badge-success'
+                                    ? 'badge-primary'
                                     : file.change_type === 'modify'
-                                    ? 'badge-warning'
-                                    : 'badge-info'
+                                    ? 'badge-primary'
+                                    : 'badge-primary'
                                 }`}
                               >
                                 {file.change_type}
@@ -546,10 +546,10 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
           <div className="card bg-base-100 shadow-lg border border-base-200">
             <div className="card-body p-6">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center mr-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5 text-warning"
+                    className="w-5 h-5 text-primary"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -574,7 +574,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
 
               <div className="form-control mb-4">
                 <textarea
-                  className="textarea textarea-bordered h-32 text-sm resize-none focus:textarea-warning transition-colors"
+                  className="textarea textarea-bordered h-32 text-sm resize-none focus:textarea-primary transition-colors"
                   placeholder="e.g., Add loading states, improve error handling, optimize performance, add TypeScript types..."
                   value={refinePrompt}
                   onChange={(e) =>
@@ -595,7 +595,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
 
               <div className="flex gap-2">
                 <button
-                  className="btn btn-warning flex-1"
+                  className="btn btn-primary flex-1"
                   onClick={handleRefineCode}
                   disabled={refining || !refinePrompt.trim()}
                 >
@@ -625,7 +625,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                   )}
                 </button>
                 <button
-                  className="btn btn-outline"
+                  className="btn btn-outline btn-primary"
                   onClick={() => setRefinePrompt('')}
                   disabled={refining}
                 >
@@ -654,7 +654,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
               <h4 className="font-semibold mb-4 flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 mr-2 text-accent"
+                  className="w-5 h-5 mr-2 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -689,7 +689,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                 ].map((action) => (
                   <button
                     key={action.key}
-                    className="btn btn-outline btn-sm justify-start"
+                    className="btn btn-outline btn-primary btn-sm justify-start"
                     onClick={() => handleQuickAction(action.key)}
                     disabled={refining}
                   >
@@ -707,7 +707,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
               <h4 className="font-semibold mb-4 flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 mr-2 text-neutral"
+                  className="w-5 h-5 mr-2 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -746,7 +746,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                             {version.version}
                           </span>
                           {version.refinement_prompt && (
-                            <span className="badge badge-xs badge-accent">
+                            <span className="badge badge-xs badge-primary">
                               Refined
                             </span>
                           )}
