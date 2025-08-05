@@ -418,10 +418,10 @@ const AICodeAssistant: React.FC = () => {
                         isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
                       } ${
                         isCompleted
-                          ? 'border-primary bg-primary text-primary-content shadow-lg'
+                          ? 'border-stone-300 bg-stone-100 text-stone-600 shadow-sm'
                           : isActive
                           ? 'border-primary bg-primary text-primary-content shadow-lg scale-110'
-                          : 'border-base-300 bg-base-100 text-base-content/50'
+                          : 'border-stone-200 bg-stone-50 text-stone-400'
                       }`}
                       onClick={() => isClickable && handleStepClick(stepNumber)}
                     >
@@ -449,8 +449,8 @@ const AICodeAssistant: React.FC = () => {
                           isActive
                             ? 'text-primary'
                             : isCompleted
-                            ? 'text-primary'
-                            : 'text-base-content/60'
+                            ? 'text-stone-700'
+                            : 'text-stone-500'
                         }`}
                       >
                         Step {stepNumber}
@@ -460,8 +460,8 @@ const AICodeAssistant: React.FC = () => {
                           isActive
                             ? 'text-primary/80'
                             : isCompleted
-                            ? 'text-primary/80'
-                            : 'text-base-content/50'
+                            ? 'text-stone-600'
+                            : 'text-stone-400'
                         }`}
                       >
                         {title}
@@ -473,8 +473,8 @@ const AICodeAssistant: React.FC = () => {
                       <div
                         className={`absolute left-12 top-6 w-8 h-0.5 transition-colors ${
                           currentStep > stepNumber
-                            ? 'bg-primary'
-                            : 'bg-base-300'
+                            ? 'bg-stone-300'
+                            : 'bg-stone-200'
                         }`}
                         style={{ transform: 'translateX(1rem)' }}
                       />
