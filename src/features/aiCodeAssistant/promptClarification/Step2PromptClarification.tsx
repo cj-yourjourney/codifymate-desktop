@@ -183,10 +183,10 @@ const Step2PromptClarification: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-bold text-base-content">
-                Project Clarification
+                Provide Context
               </h2>
               <p className="text-base-content/60">
-                Help AI understand your requirements better
+                Answer questions and select reference files
               </p>
             </div>
             <div className="text-right">
@@ -232,10 +232,10 @@ const Step2PromptClarification: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-base-content">
-                Clarifying Questions
+                Answer Questions
               </h3>
               <p className="text-sm text-base-content/60">
-                Answer these to help AI generate better code
+                Help AI understand exactly what you need
               </p>
             </div>
           </div>
@@ -328,10 +328,10 @@ const Step2PromptClarification: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-base-content">
-                Additional Notes
+                Extra Details
               </h3>
               <p className="text-sm text-base-content/60">
-                Any extra context or requirements
+                Additional requirements or preferences
               </p>
             </div>
           </div>
@@ -374,7 +374,7 @@ const Step2PromptClarification: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-base-content">
-                  Context Files
+                  Reference Files
                 </h3>
                 <p className="text-sm text-base-content/60">
                   Select relevant files for context
@@ -428,7 +428,7 @@ const Step2PromptClarification: React.FC = () => {
                       d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                     />
                   </svg>
-                  AI Suggested ({relevantFiles.length})
+                  AI Recommended ({relevantFiles.length})
                 </h4>
               </div>
 
@@ -669,7 +669,7 @@ const Step2PromptClarification: React.FC = () => {
                     {manuallyAddedFiles.length} manually added)
                   </div>
                   <div className="text-primary/70 text-xs mt-1">
-                    File content is loaded and ready for code generation
+                    Files are ready for code generation
                   </div>
                 </div>
               </div>

@@ -46,7 +46,7 @@ const AICodeAssistant: React.FC = () => {
 
   const stepTitles = [
     'Write Prompt',
-    'Clarify & Configure',
+    'Add Details & Files',
     'Generate & Refine'
   ]
   
@@ -507,7 +507,7 @@ const AICodeAssistant: React.FC = () => {
                   {currentStep === 1 &&
                     'Write your prompt and select the project folder to work on'}
                   {currentStep === 2 &&
-                    'Answer questions and select relevant files for context'}
+                    'Share more details and select reference files for better code generation'}
                   {currentStep === 3 &&
                     'Review, copy, and refine your generated code'}
                 </p>
