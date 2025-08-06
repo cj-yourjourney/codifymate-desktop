@@ -166,7 +166,7 @@ export const refineCode = createAsyncThunk(
         refinement_prompt: payload.refinementFeedback
       },
       refinement_feedback: payload.refinementFeedback,
-      context_files: contextFiles,
+      // context_files: contextFiles,
       project_structure: payload.projectStructure
     }
 
