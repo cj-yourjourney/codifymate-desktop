@@ -8,5 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getProjectFiles: (folderPath: string) =>
     ipcRenderer.invoke('get-project-files', folderPath),
   readFileContent: (filePath: string) =>
-    ipcRenderer.invoke('read-file-content', filePath)
+    ipcRenderer.invoke('read-file-content', filePath),
+  writeFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('write-file', filePath, content)
 })
