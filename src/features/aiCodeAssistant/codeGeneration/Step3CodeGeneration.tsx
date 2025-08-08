@@ -391,11 +391,11 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
               )}
 
               {/* AI Explanation */}
-              <div className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="flex items-start">
+              <div className="mb-6 bg-base-200 rounded-lg border border-primary/20 p-5">
+                <div className="flex items-start mb-3">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5 text-primary mr-3 mt-0.5"
+                    className="w-6 h-6 text-primary mr-3 mt-0.5 flex-shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -407,31 +407,36 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                       d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                     />
                   </svg>
-                  <div className="text-sm text-primary">
-                    <div className="font-semibold mb-2">AI Explanation</div>
-                    <p className="leading-relaxed">
-                      {currentVersion.explanation}
-                    </p>
-                    {currentVersion.additional_notes && (
-                      <div className="mt-3 pt-3 border-t border-primary/20">
-                        <div className="font-medium mb-1">
-                          Additional Notes:
-                        </div>
-                        <p className="text-primary/80">
-                          {currentVersion.additional_notes}
-                        </p>
-                      </div>
-                    )}
-                    {currentVersion.refinement_prompt && (
-                      <div className="mt-3 pt-3 border-t border-primary/20">
-                        <div className="font-medium mb-1">Last Refinement:</div>
-                        <p className="text-primary/80">
-                          {currentVersion.refinement_prompt}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <h3 className="text-lg font-semibold">AI Explanation</h3>
                 </div>
+
+                <div className="bg-base-200 border border-base-300 rounded-lg px-4 py-3 mb-3">
+                  <p className="text-sm leading-relaxed text-base-content/80 whitespace-pre-wrap">
+                    {currentVersion.explanation || 'No explanation provided.'}{' '}
+                  </p>
+                </div>
+
+                {currentVersion.additional_notes && (
+                  <div className="mt-4 border-t border-base-300 pt-3">
+                    <h4 className="text-md font-medium text-base-content mb-2">
+                      Additional Notes
+                    </h4>
+                    <div className="text-base-content/70 text-sm leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap px-2">
+                      {currentVersion.additional_notes}
+                    </div>
+                  </div>
+                )}
+
+                {currentVersion.refinement_prompt && (
+                  <div className="mt-4 border-t border-base-300 pt-3">
+                    <h4 className="text-md font-medium text-base-content mb-2">
+                      Last Refinement
+                    </h4>
+                    <div className="text-base-content/70 text-sm leading-relaxed whitespace-pre-wrap px-2">
+                      {currentVersion.refinement_prompt}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Code Files */}
@@ -442,7 +447,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                     className="border border-base-300 rounded-lg overflow-hidden"
                   >
                     {/* File Header */}
-                    <div className="bg-neutral text-neutral-content px-4 py-3">
+                    <div className="bg-accent px-4 py-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-neutral-content/10 rounded-md flex items-center justify-center">
@@ -462,7 +467,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                             </svg>
                           </div>
                           <div>
-                            <div className="font-semibold text-sm">
+                            <div className="font-semibold">
                               {file.file_path.split('/').pop()}
                             </div>
                             <div className="text-xs opacity-70 flex items-center space-x-2">
