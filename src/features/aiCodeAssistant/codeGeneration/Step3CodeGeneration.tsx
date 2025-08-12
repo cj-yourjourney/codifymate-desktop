@@ -310,9 +310,9 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
         </div>
       )}
 
-      <div className="grid xl:grid-cols-3 gap-8">
-        {/* Generated Code Section - Takes 2 columns */}
-        <div className="xl:col-span-2 space-y-6">
+      <div className="grid xl:grid-cols-2 gap-8">
+        {/* Generated Code Section - Now takes 1 column (50%) */}
+        <div className="space-y-6">
           <div className="card bg-base-100 shadow-lg border border-base-200">
             <div className="card-body p-6">
               <div className="flex items-center justify-between mb-6">
@@ -429,7 +429,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
           </div>
         </div>
 
-        {/* Right Panel - Takes 1 column */}
+        {/* Right Panel - Now also takes 1 column (50%) */}
         <div className="space-y-6">
           {/* Refinement Input */}
           <div className="card bg-base-100 shadow-lg border border-base-200">
