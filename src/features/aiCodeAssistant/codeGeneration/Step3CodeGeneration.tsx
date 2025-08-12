@@ -7,6 +7,8 @@ import {
 } from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 import LoadingModal from '@/shared/components/LoadingModal'
 import CodeFileCard from './components/CodeFileCard'
+import FileExplorer from './components/FileExplorer'
+import MonacoCodeViewer from './components/MonacoCodeViewer'
 
 interface Step3Props {
   refinePrompt: string
@@ -30,6 +32,15 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     type: 'success' | 'error' | null
     message: string
   }>({ type: null, message: '' })
+
+  // File explorer state
+  const [selectedFile, setSelectedFile] = useState<{
+    path: string
+    name: string
+  } | null>(null)
+
+  // Get project path from projectStructure
+  const projectPath = projectStructure?.root
 
   // Clear notification after 5 seconds
   React.useEffect(() => {
@@ -267,24 +278,12 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     }
   }
 
-  const getQuickActionPrompt = (action: string) => {
-    const prompts = {
-      comments: 'Add comprehensive comments and documentation to the code',
-      styling: 'Improve the styling and visual appearance of the components',
-      performance: 'Optimize the code for better performance and efficiency',
-      'error-handling': 'Add comprehensive error handling and validation',
-      testing: 'Add unit tests and test cases for the components',
-      accessibility:
-        'Improve accessibility with ARIA labels and keyboard navigation',
-      security: 'Add security improvements and input validation',
-      mobile: 'Make the components mobile-responsive and touch-friendly'
-    }
-    return prompts[action as keyof typeof prompts] || action
+  const handleFileSelect = (filePath: string, fileName: string) => {
+    setSelectedFile({ path: filePath, name: fileName })
   }
 
-  const handleQuickAction = (action: string) => {
-    const prompt = getQuickActionPrompt(action)
-    setRefinePrompt(prompt)
+  const handleCloseFileViewer = () => {
+    setSelectedFile(null)
   }
 
   return (
@@ -510,7 +509,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
           </div>
         </div>
 
-        {/* Refinement Panel - Takes 1 column */}
+        {/* Right Panel - Takes 1 column */}
         <div className="space-y-6">
           {/* Refinement Input */}
           <div className="card bg-base-100 shadow-lg border border-base-200">
@@ -610,7 +609,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth="2"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                     />
                   </svg>
                 </button>
@@ -618,143 +617,19 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-6">
-              <h4 className="font-semibold mb-4 flex items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 mr-2 text-primary"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                Quick Actions
-              </h4>
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  { key: 'comments', label: 'Add Comments', icon: '📝' },
-                  { key: 'styling', label: 'Improve Styling', icon: '🎨' },
-                  {
-                    key: 'performance',
-                    label: 'Optimize Performance',
-                    icon: '⚡'
-                  },
-                  {
-                    key: 'error-handling',
-                    label: 'Error Handling',
-                    icon: '🛡️'
-                  },
-                  { key: 'testing', label: 'Add Tests', icon: '🧪' },
-                  { key: 'accessibility', label: 'Accessibility', icon: '♿' },
-                  { key: 'security', label: 'Security', icon: '🔒' },
-                  { key: 'mobile', label: 'Mobile Ready', icon: '📱' }
-                ].map((action) => (
-                  <button
-                    key={action.key}
-                    className="btn btn-outline btn-primary btn-sm justify-start"
-                    onClick={() => handleQuickAction(action.key)}
-                    disabled={refining}
-                  >
-                    <span className="mr-2">{action.icon}</span>
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* File Explorer */}
+          <FileExplorer
+            projectPath={projectPath}
+            onFileSelect={handleFileSelect}
+            selectedFile={selectedFile?.path}
+          />
 
-          {/* Version History */}
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-6">
-              <h4 className="font-semibold mb-4 flex items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 mr-2 text-primary"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Version History
-              </h4>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {generatedCodeVersions.length > 0 ? (
-                  [...generatedCodeVersions].reverse().map((version, index) => {
-                    const isLatest = version.id === currentVersion?.id
-                    const { date, time } = formatTimestamp(version.timestamp)
-
-                    return (
-                      <div
-                        key={version.id}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                          isLatest
-                            ? 'border-primary/30 bg-primary/5'
-                            : 'border-base-300 bg-base-50 hover:border-primary/20'
-                        }`}
-                        onClick={() => handleVersionChange(version.id)}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span
-                            className={`font-semibold text-sm ${
-                              isLatest ? 'text-primary' : 'text-base-content'
-                            }`}
-                          >
-                            {version.version}
-                          </span>
-                          {version.refinement_prompt && (
-                            <span className="badge badge-xs badge-primary">
-                              Refined
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-base-content/60 mb-2 line-clamp-2">
-                          {version.explanation.substring(0, 100)}
-                          {version.explanation.length > 100 ? '...' : ''}
-                        </p>
-                        <div className="text-xs text-base-content/50">
-                          {date} at {time}
-                        </div>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div className="text-center py-6 text-base-content/60">
-                    <div className="w-12 h-12 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-6 h-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-sm">No version history yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Monaco Code Viewer */}
+          <MonacoCodeViewer
+            filePath={selectedFile?.path}
+            fileName={selectedFile?.name}
+            onClose={handleCloseFileViewer}
+          />
         </div>
       </div>
     </div>
