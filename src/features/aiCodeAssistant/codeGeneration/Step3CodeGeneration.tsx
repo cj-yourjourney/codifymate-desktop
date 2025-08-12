@@ -142,7 +142,7 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     }
   }
 
-  // Handle file creation/modification
+  // Updated file action handler - now called after diff confirmation
   const handleFileAction = async (file: any) => {
     try {
       if (file.change_type === 'create') {
