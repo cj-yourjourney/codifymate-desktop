@@ -22,8 +22,7 @@ import {
 } from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 import LoadingModal from '@/shared/components/LoadingModal'
 import CodeFileCard from './components/CodeFileCard'
-import FileExplorer from './components/FileExplorer'
-import MonacoCodeViewer from './components/MonacoCodeViewer'
+import ProjectFileViewer from './components/ProjectFileViewer'
 
 interface Step3Props {
   refinePrompt: string
@@ -41,6 +40,9 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
   // Get context from other slices for refinement
   const { selectedRelevantFiles, manuallyAddedFiles, projectStructure } =
     useAppSelector((state) => state.promptClarification)
+
+  // Get selectedFolder from promptRefinement state
+  const { selectedFolder } = useAppSelector((state) => state.promptRefinement)
 
   // Local state for notifications
   const [notification, setNotification] = useState<{
@@ -498,18 +500,10 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
             </div>
           </div>
 
-          {/* File Explorer */}
-          <FileExplorer
-            projectPath={projectPath}
+          {/* Project File Viewer Component */}
+          <ProjectFileViewer
+            selectedFolder={selectedFolder}
             onFileSelect={handleFileSelect}
-            selectedFile={selectedFile?.path}
-          />
-
-          {/* Monaco Code Viewer */}
-          <MonacoCodeViewer
-            filePath={selectedFile?.path}
-            fileName={selectedFile?.name}
-            onClose={handleCloseFileViewer}
           />
         </div>
       </div>
