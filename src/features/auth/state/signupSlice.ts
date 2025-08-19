@@ -1,5 +1,6 @@
 // store/slices/signupSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { API_ENDPOINTS, apiRequest } from '@/shared/api/config'
 
 // Types
 export interface User {
@@ -44,25 +45,15 @@ export const registerUser = createAsyncThunk<
   { rejectValue: SignupError }
 >('signup/registerUser', async (userData, { rejectWithValue }) => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
+    const data = await apiRequest(API_ENDPOINTS.REGISTER_USER, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify(userData)
     })
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return rejectWithValue(data)
-    }
-
     return data
-  } catch (error) {
-    return rejectWithValue({
-      message: 'Network error. Please check your connection.'
-    })
+  } catch (error: any) {
+    // The apiRequest wrapper already handles parsing, so we can directly return the error
+    return rejectWithValue(error)
   }
 })
 

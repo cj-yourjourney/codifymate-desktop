@@ -4,7 +4,8 @@ const API_BASE_URL =
 
 export const API_ENDPOINTS = {
   GENERATE_CODE: `${API_BASE_URL}/api/prompt/generate-code/`,
-  REFINE_CODE: `${API_BASE_URL}/api/prompt/refine-code/`
+  REFINE_CODE: `${API_BASE_URL}/api/prompt/refine-code/`,
+  REGISTER_USER: `${API_BASE_URL}/api/users/register/`
   // Add other endpoints as needed
 } as const
 
@@ -23,17 +24,19 @@ export const apiRequest = async (url: string, options: RequestInit = {}) => {
 
     // Handle different HTTP status codes
     if (!response.ok) {
-      let errorMessage = `HTTP error! status: ${response.status}`
+      let errorData: any = {}
 
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.error || errorData.message || errorMessage
+        errorData = await response.json()
       } catch {
-        // If can't parse JSON, use status text
-        errorMessage = response.statusText || errorMessage
+        // If can't parse JSON, create error object with status text
+        errorData = {
+          error: response.statusText || `HTTP error! status: ${response.status}`
+        }
       }
 
-      throw new Error(errorMessage)
+      // Throw the parsed error data so it can be caught by Redux
+      throw errorData
     }
 
     const data = await response.json()
