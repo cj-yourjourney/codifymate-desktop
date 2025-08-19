@@ -8,6 +8,8 @@ import {
 import { useRouter } from 'next/router'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import type { RegisterUserData } from './state/signupSlice'
+import { tokenStorage } from '@/shared/utils/tokenStorage'
+
 
 interface ValidationErrors {
   username?: string
@@ -35,10 +37,12 @@ const SignUpForm: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
 
   useEffect(() => {
-    // if (isRegistered) {
-    //   // Redirect to login or dashboard after successful registration
-    //   router.push('/login')
-    // }
+    if (isRegistered) {
+      // Redirect to login or dashboard after successful registration
+      // router.push('/login')
+      // Call this to see tokens
+      tokenStorage.debugTokens()
+    }
   }, [isRegistered, router])
 
   useEffect(() => {

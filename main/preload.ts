@@ -10,5 +10,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFileContent: (filePath: string) =>
     ipcRenderer.invoke('read-file-content', filePath),
   writeFile: (filePath: string, content: string) =>
-    ipcRenderer.invoke('write-file', filePath, content)
+    ipcRenderer.invoke('write-file', filePath, content),
+
+  // Add these new token methods:
+  storeToken: (key: string, value: string) =>
+    ipcRenderer.invoke('store-token', key, value),
+  getToken: (key: string) => ipcRenderer.invoke('get-token', key),
+  removeToken: (key: string) => ipcRenderer.invoke('remove-token', key),
+  clearAllTokens: () => ipcRenderer.invoke('clear-all-tokens')
 })

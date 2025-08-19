@@ -1,6 +1,8 @@
 // store/slices/signupSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { API_ENDPOINTS, apiRequest } from '@/shared/api/config'
+import { tokenStorage } from '@/shared/utils/tokenStorage'
+
 
 // Types
 export interface User {
@@ -31,8 +33,6 @@ export interface SignupError {
 
 export interface SignupState {
   user: User | null
-  accessToken: string | null
-  refreshToken: string | null
   isLoading: boolean
   error: SignupError | null
   isRegistered: boolean
@@ -50,17 +50,19 @@ export const registerUser = createAsyncThunk<
       body: JSON.stringify(userData)
     })
 
+    // Store tokens securely after successful registration
+    if (data.access && data.refresh) {
+      await tokenStorage.storeTokens(data.access, data.refresh)
+    }
+
     return data
   } catch (error: any) {
-    // The apiRequest wrapper already handles parsing, so we can directly return the error
     return rejectWithValue(error)
   }
 })
 
 const initialState: SignupState = {
   user: null,
-  accessToken: null,
-  refreshToken: null,
   isLoading: false,
   error: null,
   isRegistered: false
@@ -79,10 +81,9 @@ const signupSlice = createSlice({
     },
     resetSignupForm: (state) => {
       state.user = null
-      state.accessToken = null
-      state.refreshToken = null
       state.isRegistered = false
       state.error = null
+      // Tokens are now handled by secure storage, not Redux
     }
   },
   extraReducers: (builder) => {
@@ -96,10 +97,9 @@ const signupSlice = createSlice({
         (state, action: PayloadAction<RegisterResponse>) => {
           state.isLoading = false
           state.user = action.payload.user
-          state.accessToken = action.payload.access
-          state.refreshToken = action.payload.refresh
           state.isRegistered = true
           state.error = null
+          // Tokens are now stored securely via tokenStorage
         }
       )
       .addCase(registerUser.rejected, (state, action) => {

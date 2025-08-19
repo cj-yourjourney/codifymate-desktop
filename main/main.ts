@@ -1,5 +1,12 @@
 // main/main.ts (updated with file system handling)
-import { app, BrowserWindow, ipcMain, protocol, dialog } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  protocol,
+  dialog,
+  safeStorage
+} from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
 import { isDev } from './util'
@@ -7,6 +14,10 @@ import { isDev } from './util'
 if (require('electron-squirrel-startup')) {
   app.quit()
 }
+
+const tokenStore = new Map<string, Buffer>()
+
+
 
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
@@ -241,3 +252,58 @@ ipcMain.handle('write-file', async (event, filePath: string, content: string) =>
     throw error
   }
 })
+
+
+// Handle token storage
+ipcMain.handle('store-token', async (event, key: string, value: string) => {
+  try {
+    if (safeStorage.isEncryptionAvailable()) {
+      const encrypted = safeStorage.encryptString(value);
+      tokenStore.set(key, encrypted);
+    } else {
+      // Fallback for systems without encryption
+      console.warn('Encryption not available, storing token in plain text');
+      tokenStore.set(key, Buffer.from(value, 'utf8'));
+    }
+  } catch (error) {
+    console.error('Failed to store token:', error);
+    throw error;
+  }
+});
+
+// Handle token retrieval
+ipcMain.handle('get-token', async (event, key: string): Promise<string | null> => {
+  try {
+    const encrypted = tokenStore.get(key);
+    if (!encrypted) return null;
+
+    if (safeStorage.isEncryptionAvailable()) {
+      return safeStorage.decryptString(encrypted);
+    } else {
+      return encrypted.toString('utf8');
+    }
+  } catch (error) {
+    console.error('Failed to retrieve token:', error);
+    return null;
+  }
+});
+
+// Handle token removal
+ipcMain.handle('remove-token', async (event, key: string) => {
+  try {
+    tokenStore.delete(key);
+  } catch (error) {
+    console.error('Failed to remove token:', error);
+    throw error;
+  }
+});
+
+// Handle clearing all tokens
+ipcMain.handle('clear-all-tokens', async (event) => {
+  try {
+    tokenStore.clear();
+  } catch (error) {
+    console.error('Failed to clear tokens:', error);
+    throw error;
+  }
+});
