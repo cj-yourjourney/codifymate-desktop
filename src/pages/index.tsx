@@ -30,8 +30,8 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex flex-col gap-4 mt-4 w-full">
-              <Link href="/test" className="btn btn-primary w-full">
-                Test Page
+              <Link href="/sign-up" className="btn btn-primary w-full">
+                Sign Up
               </Link>
               </div>
             <div className="flex flex-col gap-4 mt-4 w-full">

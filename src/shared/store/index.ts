@@ -5,6 +5,7 @@ import { composeWithDevTools } from '@redux-devtools/remote'
 import promptRefinementReducer from '@/features/aiCodeAssistant/promptRefinement/state/promptRefinementSlice'
 import promptClarificationReducer from '@/features/aiCodeAssistant/promptClarification/state/promptClarificationSlice'
 import codeGenerationReducer from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
+import signupReducer from '@/features/auth/state/signupSlice'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -29,7 +30,9 @@ export const store = configureStore({
     counter: counterReducer,
     promptRefinement: promptRefinementReducer,
     promptClarification: promptClarificationReducer,
-    codeGeneration: codeGenerationReducer
+    codeGeneration: codeGenerationReducer,
+
+    signup: signupReducer
   },
   devTools: false,
   // Use enhancers callback function for Redux Toolkit compatibility
