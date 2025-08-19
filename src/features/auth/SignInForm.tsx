@@ -1,55 +1,30 @@
-// components/SignUpForm.tsx
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
-import {
-  registerUser,
-  clearSignupError,
-  clearSignupState
-} from './state/signupSlice'
+// components/SignInForm.tsx
+import { useState, ChangeEvent, FormEvent } from 'react'
 import { useRouter } from 'next/router'
-import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
-import type { RegisterUserData } from './state/signupSlice'
-import { tokenStorage } from '@/shared/utils/tokenStorage'
 
-interface ValidationErrors {
-  username?: string
-  email?: string
-  password?: string
-  password2?: string
-  invite_code?: string
+interface SignInUserData {
+  email: string
+  password: string
 }
 
-const SignUpForm: React.FC = () => {
-  const dispatch = useAppDispatch()
-  const router = useRouter()
-  tokenStorage.debugTokens()
-  const { isLoading, error, isRegistered } = useAppSelector(
-    (state) => state.signup
-  )
+interface ValidationErrors {
+  email?: string
+  password?: string
+}
 
-  const [formData, setFormData] = useState<RegisterUserData>({
-    username: '',
+const SignInForm: React.FC = () => {
+  const router = useRouter()
+
+  // Mock loading state for UI testing
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<any>(null)
+
+  const [formData, setFormData] = useState<SignInUserData>({
     email: '',
-    password: '',
-    password2: '',
-    invite_code: ''
+    password: ''
   })
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
-
-  useEffect(() => {
-    if (isRegistered) {
-      // Redirect to login or dashboard after successful registration
-      // router.push('/login')
-      // Call this to see tokens
-      tokenStorage.debugTokens()
-    }
-  }, [isRegistered, router])
-
-  useEffect(() => {
-    // Clear errors when component mounts
-    dispatch(clearSignupError())
-    dispatch(clearSignupState())
-  }, [dispatch])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -70,12 +45,6 @@ const SignUpForm: React.FC = () => {
   const validateForm = (): ValidationErrors => {
     const errors: ValidationErrors = {}
 
-    if (!formData.username.trim()) {
-      errors.username = 'Username is required'
-    } else if (formData.username.length < 3) {
-      errors.username = 'Username must be at least 3 characters'
-    }
-
     if (!formData.email.trim()) {
       errors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -84,18 +53,6 @@ const SignUpForm: React.FC = () => {
 
     if (!formData.password) {
       errors.password = 'Password is required'
-    } else if (formData.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters'
-    }
-
-    if (!formData.password2) {
-      errors.password2 = 'Please confirm your password'
-    } else if (formData.password !== formData.password2) {
-      errors.password2 = 'Passwords do not match'
-    }
-
-    if (!formData.invite_code.trim()) {
-      errors.invite_code = 'Invite code is required'
     }
 
     return errors
@@ -110,7 +67,17 @@ const SignUpForm: React.FC = () => {
       return
     }
 
-    dispatch(registerUser(formData))
+    // Mock login process for UI testing
+    setIsLoading(true)
+    setError(null)
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false)
+      console.log('Sign in attempt with:', formData)
+      // You can uncomment this to test success flow
+      // router.push('/dashboard')
+    }, 2000)
   }
 
   const renderFieldError = (fieldName: keyof ValidationErrors) => {
@@ -143,7 +110,7 @@ const SignUpForm: React.FC = () => {
       <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-300">
         <div className="card-body">
           <h2 className="text-2xl font-bold text-center mb-6 w-full">
-            Create Account
+            Sign In
           </h2>
 
           {/* Display general API errors */}
@@ -167,23 +134,6 @@ const SignUpForm: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="form-control">
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Username"
-                className={`input input-bordered w-full ${
-                  validationErrors.username || (error && error.username)
-                    ? 'input-error'
-                    : ''
-                }`}
-                disabled={isLoading}
-              />
-              {renderFieldError('username')}
-            </div>
-
             <div className="form-control">
               <input
                 type="email"
@@ -218,40 +168,6 @@ const SignUpForm: React.FC = () => {
               {renderFieldError('password')}
             </div>
 
-            <div className="form-control">
-              <input
-                type="password"
-                name="password2"
-                value={formData.password2}
-                onChange={handleChange}
-                placeholder="Confirm Password"
-                className={`input input-bordered w-full ${
-                  validationErrors.password2 || (error && error.password2)
-                    ? 'input-error'
-                    : ''
-                }`}
-                disabled={isLoading}
-              />
-              {renderFieldError('password2')}
-            </div>
-
-            <div className="form-control">
-              <input
-                type="text"
-                name="invite_code"
-                value={formData.invite_code}
-                onChange={handleChange}
-                placeholder="Invitation Code"
-                className={`input input-bordered w-full ${
-                  validationErrors.invite_code || (error && error.invite_code)
-                    ? 'input-error'
-                    : ''
-                }`}
-                disabled={isLoading}
-              />
-              {renderFieldError('invite_code')}
-            </div>
-
             <div className="form-control mt-6">
               <button
                 type="submit"
@@ -260,7 +176,7 @@ const SignUpForm: React.FC = () => {
                 }`}
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating Account...' : 'Sign Up'}
+                {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
             </div>
           </form>
@@ -269,12 +185,12 @@ const SignUpForm: React.FC = () => {
 
           <div className="text-center">
             <p className="text-sm">
-              Already have an account?{' '}
+              Don't have an account?{' '}
               <button
-                onClick={() => router.push('/sign-in')}
+                onClick={() => router.push('/sign-up')}
                 className="link link-primary"
               >
-                Sign In
+                Sign Up
               </button>
             </p>
           </div>
@@ -284,4 +200,4 @@ const SignUpForm: React.FC = () => {
   )
 }
 
-export default SignUpForm
+export default SignInForm
