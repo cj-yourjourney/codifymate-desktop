@@ -22,6 +22,10 @@ interface ValidationErrors {
 const SignUpForm: React.FC = () => {
   const dispatch = useAppDispatch()
   const router = useRouter()
+  tokenStorage.debugTokens()
+  window.electronAPI
+    .getToken('access_token')
+    .then((token) => console.log('🔑 Access Token right:', token))
   const { isLoading, error, isRegistered } = useAppSelector(
     (state) => state.signup
   )

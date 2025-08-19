@@ -1,4 +1,4 @@
-// main/preload.ts (updated)
+// main/preload.ts (updated with new methods)
 import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -12,10 +12,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFile: (filePath: string, content: string) =>
     ipcRenderer.invoke('write-file', filePath, content),
 
-  // Add these new token methods:
+  // Updated token methods with new optional features:
   storeToken: (key: string, value: string) =>
     ipcRenderer.invoke('store-token', key, value),
   getToken: (key: string) => ipcRenderer.invoke('get-token', key),
   removeToken: (key: string) => ipcRenderer.invoke('remove-token', key),
-  clearAllTokens: () => ipcRenderer.invoke('clear-all-tokens')
+  clearAllTokens: () => ipcRenderer.invoke('clear-all-tokens'),
+
+  // New optional token utility methods:
+  isTokenValid: (key: string) => ipcRenderer.invoke('is-token-valid', key),
+  extendTokenExpiry: (key: string) =>
+    ipcRenderer.invoke('extend-token-expiry', key)
 })
