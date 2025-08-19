@@ -261,34 +261,127 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       startCol: number
       endLine: number
       endCol: number
+      type: 'path' | 'name'
+      associatedPath?: string
     }[] = []
     const lines = content.split('\n')
 
     lines.forEach((line, lineIndex) => {
-      // Match import statements
-      const importMatches = [
-        ...line.matchAll(/import\s+.*?\s+from\s+['"`]([^'"`]+)['"`]/g),
-        ...line.matchAll(/import\s+['"`]([^'"`]+)['"`]/g),
-        ...line.matchAll(/require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g)
+      // Match import statements with both names and paths
+      const importPatterns = [
+        // import Name from 'path'
+        /import\s+(\w+)\s+from\s+['"`]([^'"`]+)['"`]/g,
+        // import { Name1, Name2 } from 'path'
+        /import\s+\{\s*([^}]+)\s*\}\s+from\s+['"`]([^'"`]+)['"`]/g,
+        // import * as Name from 'path'
+        /import\s+\*\s+as\s+(\w+)\s+from\s+['"`]([^'"`]+)['"`]/g,
+        // import Name, { Other } from 'path'
+        /import\s+(\w+)\s*,\s*\{[^}]*\}\s+from\s+['"`]([^'"`]+)['"`]/g,
+        // const Name = require('path')
+        /const\s+(\w+)\s*=\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+        // import 'path' (side effect imports)
+        /import\s+['"`]([^'"`]+)['"`]/g
       ]
 
-      importMatches.forEach((match) => {
-        const importPath = match[1]
-        if (
-          importPath &&
-          (importPath.startsWith('./') ||
-            importPath.startsWith('../') ||
-            !importPath.includes('/'))
-        ) {
+      importPatterns.forEach((pattern) => {
+        let match
+        while ((match = pattern.exec(line)) !== null) {
+          const fullMatch = match[0]
           const startCol = match.index || 0
-          references.push({
-            text: importPath,
-            startLine: lineIndex,
-            startCol: startCol + match[0].indexOf(importPath),
-            endLine: lineIndex,
-            endCol: startCol + match[0].indexOf(importPath) + importPath.length
-          })
+
+          // Handle different import patterns
+          if (pattern.source.includes('import\\s+[\'"`]')) {
+            // Side effect import: import 'path'
+            const importPath = match[1]
+            if (
+              importPath &&
+              (importPath.startsWith('./') ||
+                importPath.startsWith('../') ||
+                !importPath.includes('/'))
+            ) {
+              references.push({
+                text: importPath,
+                startLine: lineIndex,
+                startCol: startCol + fullMatch.indexOf(importPath),
+                endLine: lineIndex,
+                endCol:
+                  startCol + fullMatch.indexOf(importPath) + importPath.length,
+                type: 'path'
+              })
+            }
+          } else {
+            // Regular imports with names and paths
+            const importName = match[1]
+            const importPath = match[2]
+
+            // Add path reference
+            if (
+              importPath &&
+              (importPath.startsWith('./') ||
+                importPath.startsWith('../') ||
+                !importPath.includes('/'))
+            ) {
+              const pathStart =
+                startCol + fullMatch.indexOf(`'${importPath}'`) + 1 ||
+                startCol + fullMatch.indexOf(`"${importPath}"`) + 1 ||
+                startCol + fullMatch.indexOf(`\`${importPath}\``) + 1
+
+              references.push({
+                text: importPath,
+                startLine: lineIndex,
+                startCol: pathStart,
+                endLine: lineIndex,
+                endCol: pathStart + importPath.length,
+                type: 'path'
+              })
+
+              // Add name reference(s)
+              if (importName) {
+                if (importName.includes(',') || importName.includes('{')) {
+                  // Handle destructured imports: { Name1, Name2 }
+                  const names = importName
+                    .replace(/[{}]/g, '')
+                    .split(',')
+                    .map((n) => n.trim())
+                  names.forEach((name) => {
+                    const cleanName = name.replace(/\s+as\s+\w+/, '').trim() // Remove 'as' aliases
+                    if (cleanName && /^\w+$/.test(cleanName)) {
+                      const nameStart = startCol + fullMatch.indexOf(cleanName)
+                      if (nameStart >= startCol) {
+                        // Make sure we found it
+                        references.push({
+                          text: cleanName,
+                          startLine: lineIndex,
+                          startCol: nameStart,
+                          endLine: lineIndex,
+                          endCol: nameStart + cleanName.length,
+                          type: 'name',
+                          associatedPath: importPath
+                        })
+                      }
+                    }
+                  })
+                } else {
+                  // Handle single import name
+                  const nameStart = startCol + fullMatch.indexOf(importName)
+                  if (nameStart >= startCol) {
+                    references.push({
+                      text: importName,
+                      startLine: lineIndex,
+                      startCol: nameStart,
+                      endLine: lineIndex,
+                      endCol: nameStart + importName.length,
+                      type: 'name',
+                      associatedPath: importPath
+                    })
+                  }
+                }
+              }
+            }
+          }
         }
+        // Reset regex state
+        pattern.lastIndex = 0
       })
     })
 
@@ -318,7 +411,15 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       )
 
       if (clickedReference) {
-        handleReferenceClick(clickedReference.text, currentFile)
+        // For name references, use the associated path
+        const pathToNavigate =
+          clickedReference.type === 'name'
+            ? clickedReference.associatedPath
+            : clickedReference.text
+
+        if (pathToNavigate) {
+          handleReferenceClick(pathToNavigate, currentFile)
+        }
       }
     })
 
@@ -331,8 +432,14 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
         endColumn: ref.endCol + 1
       },
       options: {
-        inlineClassName: 'reference-link',
-        hoverMessage: { value: 'Click to navigate to file' }
+        inlineClassName:
+          ref.type === 'name' ? 'reference-name-link' : 'reference-path-link',
+        hoverMessage: {
+          value:
+            ref.type === 'name'
+              ? `Click to navigate to ${ref.associatedPath || 'file'}`
+              : 'Click to navigate to file'
+        }
       }
     }))
 
@@ -341,13 +448,23 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     // Add CSS for reference styling
     const style = document.createElement('style')
     style.textContent = `
-      .reference-link {
+      .reference-path-link {
         color: #569cd6 !important;
         text-decoration: underline;
         cursor: pointer;
       }
-      .reference-link:hover {
+      .reference-path-link:hover {
         color: #4fc3f7 !important;
+      }
+      .reference-name-link {
+        color: #9cdcfe !important;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .reference-name-link:hover {
+        color: #87ceeb !important;
+        background-color: rgba(156, 220, 254, 0.1);
       }
     `
     document.head.appendChild(style)
@@ -1120,8 +1237,8 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
                 <span>Font: {fontSize}px</span>
                 {currentFileRef.isReference && (
                   <span className="text-info">
-                    • Reference Navigation Active - Click import paths to
-                    navigate
+                    • Reference Navigation Active - Click import names or paths
+                    to navigate
                   </span>
                 )}
               </div>
