@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
 import {
   FolderOpen,
@@ -20,7 +20,8 @@ import {
   Unlock,
   Plus,
   Minus,
-  RotateCcw
+  RotateCcw,
+  ArrowLeft
 } from 'lucide-react'
 
 interface ProjectFile {
@@ -38,9 +39,10 @@ interface ProjectFileViewerProps {
   onFileSelect?: (filePath: string, fileName: string) => void
 }
 
-interface ProjectFileViewerProps {
-  selectedFolder?: string | null
-  onFileSelect?: (filePath: string, fileName: string) => void
+interface FileReference {
+  file: ProjectFile
+  isReference: boolean
+  originalFile?: ProjectFile
 }
 
 const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
@@ -51,7 +53,9 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null)
+  const [currentFileRef, setCurrentFileRef] = useState<FileReference | null>(
+    null
+  )
   const [fileContent, setFileContent] = useState<string>('')
   const [editedContent, setEditedContent] = useState<string>('')
   const [loadingContent, setLoadingContent] = useState(false)
@@ -59,7 +63,8 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
   const [isEditing, setIsEditing] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [savingFile, setSavingFile] = useState(false)
-  const [fontSize, setFontSize] = useState(16) // Default font size
+  const [fontSize, setFontSize] = useState(16)
+  const editorRef = useRef<any>(null)
 
   // Load files when selectedFolder changes
   useEffect(() => {
@@ -119,10 +124,8 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       const parts = relativePath.split(/[/\\]/)
 
       if (parts.length === 1) {
-        // File is in root
         tree.push(file)
       } else {
-        // File is in a subfolder
         const parentFolderPath = rootPath + '/' + parts.slice(0, -1).join('/')
         const parentFolder = pathMap.get(parentFolderPath)
         if (parentFolder && parentFolder.children) {
@@ -139,10 +142,8 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       const parts = relativePath.split(/[/\\]/)
 
       if (parts.length === 1) {
-        // Folder is in root
         tree.push(folder)
       } else {
-        // Folder is in a parent folder
         const parentFolderPath = rootPath + '/' + parts.slice(0, -1).join('/')
         const parentFolder = pathMap.get(parentFolderPath)
         if (parentFolder && parentFolder.children) {
@@ -151,7 +152,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       }
     })
 
-    // Sort: folders first, then files, both alphabetically
     const sortItems = (items: ProjectFile[]): ProjectFile[] => {
       return items
         .sort((a, b) => {
@@ -188,19 +188,228 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     }
   }
 
-  const handleFileClick = async (file: ProjectFile) => {
-    // Only handle file clicks, not folder clicks
-    if (file.type !== 'file') return
+  // Find file by name in the file tree
+  const findFileByName = (
+    fileName: string,
+    items: ProjectFile[] = fileTree
+  ): ProjectFile | null => {
+    for (const item of items) {
+      if (item.type === 'file' && item.name === fileName) {
+        return item
+      }
+      if (item.children) {
+        const found = findFileByName(fileName, item.children)
+        if (found) return found
+      }
+    }
+    return null
+  }
 
-    // Check for unsaved changes before switching files
-    if (hasUnsavedChanges) {
-      const confirmSwitch = window.confirm(
-        'You have unsaved changes. Are you sure you want to switch files?'
-      )
-      if (!confirmSwitch) return
+  // Find file by relative path
+  const findFileByPath = (
+    relativePath: string,
+    currentFilePath: string,
+    items: ProjectFile[] = fileTree
+  ): ProjectFile | null => {
+    const currentDir = currentFilePath.substring(
+      0,
+      currentFilePath.lastIndexOf('/')
+    )
+    let targetPath = ''
+
+    if (relativePath.startsWith('./')) {
+      targetPath = currentDir + '/' + relativePath.substring(2)
+    } else if (relativePath.startsWith('../')) {
+      const upLevels = (relativePath.match(/\.\.\//g) || []).length
+      const pathParts = currentDir.split('/')
+      const newPath = pathParts.slice(0, -upLevels).join('/')
+      const remainingPath = relativePath.replace(/\.\.\//g, '')
+      targetPath = newPath + '/' + remainingPath
+    } else {
+      // Try to find by filename in the same directory first
+      const fileName = relativePath.split('/').pop()
+      if (fileName) {
+        const found = findFileByName(fileName, items)
+        if (found) return found
+      }
     }
 
-    setSelectedFile(file)
+    // Normalize the target path and find the file
+    const normalizedPath = targetPath.replace(/\/+/g, '/').replace(/\/$/, '')
+
+    const findByPath = (items: ProjectFile[]): ProjectFile | null => {
+      for (const item of items) {
+        if (item.type === 'file' && item.path === normalizedPath) {
+          return item
+        }
+        if (item.children) {
+          const found = findByPath(item.children)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    return findByPath(items)
+  }
+
+  // Extract references from file content
+  const extractReferences = (content: string, currentFile: ProjectFile) => {
+    const references: {
+      text: string
+      startLine: number
+      startCol: number
+      endLine: number
+      endCol: number
+    }[] = []
+    const lines = content.split('\n')
+
+    lines.forEach((line, lineIndex) => {
+      // Match import statements
+      const importMatches = [
+        ...line.matchAll(/import\s+.*?\s+from\s+['"`]([^'"`]+)['"`]/g),
+        ...line.matchAll(/import\s+['"`]([^'"`]+)['"`]/g),
+        ...line.matchAll(/require\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g)
+      ]
+
+      importMatches.forEach((match) => {
+        const importPath = match[1]
+        if (
+          importPath &&
+          (importPath.startsWith('./') ||
+            importPath.startsWith('../') ||
+            !importPath.includes('/'))
+        ) {
+          const startCol = match.index || 0
+          references.push({
+            text: importPath,
+            startLine: lineIndex,
+            startCol: startCol + match[0].indexOf(importPath),
+            endLine: lineIndex,
+            endCol: startCol + match[0].indexOf(importPath) + importPath.length
+          })
+        }
+      })
+    })
+
+    return references
+  }
+
+  // Setup Monaco editor click handler for references
+  const setupReferenceNavigation = (
+    editor: any,
+    content: string,
+    currentFile: ProjectFile
+  ) => {
+    if (!editor) return
+
+    const references = extractReferences(content, currentFile)
+
+    // Add click handler
+    editor.onMouseDown((e: any) => {
+      const position = e.target.position
+      if (!position) return
+
+      const clickedReference = references.find(
+        (ref) =>
+          position.lineNumber - 1 === ref.startLine &&
+          position.column - 1 >= ref.startCol &&
+          position.column - 1 <= ref.endCol
+      )
+
+      if (clickedReference) {
+        handleReferenceClick(clickedReference.text, currentFile)
+      }
+    })
+
+    // Add hover decoration for references
+    const decorations = references.map((ref) => ({
+      range: {
+        startLineNumber: ref.startLine + 1,
+        startColumn: ref.startCol + 1,
+        endLineNumber: ref.endLine + 1,
+        endColumn: ref.endCol + 1
+      },
+      options: {
+        inlineClassName: 'reference-link',
+        hoverMessage: { value: 'Click to navigate to file' }
+      }
+    }))
+
+    editor.deltaDecorations([], decorations)
+
+    // Add CSS for reference styling
+    const style = document.createElement('style')
+    style.textContent = `
+      .reference-link {
+        color: #569cd6 !important;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      .reference-link:hover {
+        color: #4fc3f7 !important;
+      }
+    `
+    document.head.appendChild(style)
+  }
+
+  const handleReferenceClick = async (
+    referencePath: string,
+    currentFile: ProjectFile
+  ) => {
+    if (!currentFile || hasUnsavedChanges) {
+      if (hasUnsavedChanges) {
+        const confirmSwitch = window.confirm(
+          'You have unsaved changes. Are you sure you want to navigate to the reference?'
+        )
+        if (!confirmSwitch) return
+      }
+    }
+
+    let targetFile: ProjectFile | null = null
+
+    // Try different strategies to find the file
+    const possibleExtensions = ['.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte']
+
+    // First, try the exact path
+    targetFile = findFileByPath(referencePath, currentFile.path)
+
+    // If not found, try with extensions
+    if (!targetFile) {
+      for (const ext of possibleExtensions) {
+        targetFile = findFileByPath(referencePath + ext, currentFile.path)
+        if (targetFile) break
+      }
+    }
+
+    // If still not found, try just by filename
+    if (!targetFile) {
+      const fileName = referencePath.split('/').pop()
+      if (fileName) {
+        targetFile = findFileByName(fileName)
+        if (!targetFile) {
+          // Try with extensions
+          for (const ext of possibleExtensions) {
+            targetFile = findFileByName(fileName + ext)
+            if (targetFile) break
+          }
+        }
+      }
+    }
+
+    if (targetFile) {
+      await loadFileContent(targetFile, true, currentFile)
+    } else {
+      alert(`Could not find reference file: ${referencePath}`)
+    }
+  }
+
+  const loadFileContent = async (
+    file: ProjectFile,
+    isReference = false,
+    originalFile?: ProjectFile
+  ) => {
+    setCurrentFileRef({ file, isReference, originalFile })
     setLoadingContent(true)
     setFileContent('')
     setEditedContent('')
@@ -221,6 +430,25 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       setEditedContent(errorMsg)
     } finally {
       setLoadingContent(false)
+    }
+  }
+
+  const handleFileClick = async (file: ProjectFile) => {
+    if (file.type !== 'file') return
+
+    if (hasUnsavedChanges) {
+      const confirmSwitch = window.confirm(
+        'You have unsaved changes. Are you sure you want to switch files?'
+      )
+      if (!confirmSwitch) return
+    }
+
+    await loadFileContent(file)
+  }
+
+  const handleBackToOriginal = () => {
+    if (currentFileRef?.originalFile) {
+      loadFileContent(currentFileRef.originalFile)
     }
   }
 
@@ -247,19 +475,19 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
   }
 
   const handleSaveFile = async () => {
-    if (!selectedFile || !hasUnsavedChanges) return
+    if (!currentFileRef?.file || !hasUnsavedChanges) return
 
     setSavingFile(true)
     try {
-      await window.electronAPI.writeFile(selectedFile.path, editedContent)
+      await window.electronAPI.writeFile(
+        currentFileRef.file.path,
+        editedContent
+      )
       setFileContent(editedContent)
       setHasUnsavedChanges(false)
-
-      // You could add a success notification here if you have a notification system
-      console.log('File saved successfully:', selectedFile.name)
+      console.log('File saved successfully:', currentFileRef.file.name)
     } catch (err) {
       console.error('Error saving file:', err)
-      // You could add an error notification here
       alert(
         `Failed to save file: ${
           err instanceof Error ? err.message : 'Unknown error'
@@ -277,7 +505,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       )
       if (!confirmDiscard) return
 
-      // Reset to original content
       setEditedContent(fileContent)
       setHasUnsavedChanges(false)
     }
@@ -293,14 +520,13 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
       if (!confirmClose) return
     }
 
-    setSelectedFile(null)
+    setCurrentFileRef(null)
     setFileContent('')
     setEditedContent('')
     setIsEditing(false)
     setHasUnsavedChanges(false)
   }
 
-  // Get Monaco language based on file extension
   const getMonacoLanguage = (extension: string): string => {
     const languageMap: { [key: string]: string } = {
       js: 'javascript',
@@ -335,17 +561,16 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     return languageMap[extension] || 'plaintext'
   }
 
-  // Font size controls
   const increaseFontSize = () => {
-    setFontSize((prev) => Math.min(prev + 2, 32)) // Max 32px
+    setFontSize((prev) => Math.min(prev + 2, 32))
   }
 
   const decreaseFontSize = () => {
-    setFontSize((prev) => Math.max(prev - 2, 10)) // Min 10px
+    setFontSize((prev) => Math.max(prev - 2, 10))
   }
 
   const resetFontSize = () => {
-    setFontSize(16) // Reset to default
+    setFontSize(16)
   }
 
   const handleRefresh = () => {
@@ -417,7 +642,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     }
   }
 
-  // Render tree node recursively
   const renderTreeNode = (
     item: ProjectFile,
     depth: number = 0
@@ -459,8 +683,7 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
         </div>
       )
     } else {
-      // File node
-      const isSelected = selectedFile?.path === item.path
+      const isSelected = currentFileRef?.file.path === item.path
       return (
         <div
           key={item.path}
@@ -492,7 +715,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     }
   }
 
-  // Search functionality for tree structure
   const searchInTree = (items: ProjectFile[], query: string): ProjectFile[] => {
     const results: ProjectFile[] = []
 
@@ -510,7 +732,7 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
           results.push({
             ...item,
             children: childResults,
-            isExpanded: true // Auto-expand folders with matching files
+            isExpanded: true
           })
         }
       }
@@ -519,7 +741,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     return results
   }
 
-  // Get total file count from tree
   const getTotalFileCount = (items: ProjectFile[]): number => {
     let count = 0
     items.forEach((item) => {
@@ -532,7 +753,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
     return count
   }
 
-  // Get filtered tree for search
   const displayTree = searchQuery
     ? searchInTree(fileTree, searchQuery)
     : fileTree
@@ -593,7 +813,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
 
         {isExpanded && (
           <>
-            {/* Selected Folder Path */}
             {selectedFolder && (
               <div className="mb-4 p-3 bg-base-200 rounded-lg">
                 <p className="text-sm text-base-content/70 font-mono break-all">
@@ -602,7 +821,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
               </div>
             )}
 
-            {/* Search */}
             {totalFiles > 0 && (
               <div className="form-control mb-4">
                 <div className="input-group">
@@ -628,7 +846,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
               </div>
             )}
 
-            {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-8">
                 <span className="loading loading-spinner loading-md mr-3"></span>
@@ -638,7 +855,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
               </div>
             )}
 
-            {/* Error State */}
             {error && (
               <div className="alert alert-error">
                 <AlertCircle className="w-5 h-5" />
@@ -652,7 +868,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
               </div>
             )}
 
-            {/* No Folder Selected */}
             {!selectedFolder && !loading && (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -671,14 +886,12 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
               </div>
             )}
 
-            {/* File Tree */}
             {!loading && !error && selectedFolder && displayTree.length > 0 && (
               <div className="space-y-1 max-h-80 overflow-y-auto group">
                 {displayTree.map((item) => renderTreeNode(item))}
               </div>
             )}
 
-            {/* No Files Found */}
             {!loading &&
               !error &&
               selectedFolder &&
@@ -692,7 +905,6 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
                 </div>
               )}
 
-            {/* No Files in Folder */}
             {!loading && !error && selectedFolder && totalFiles === 0 && (
               <div className="text-center py-6">
                 <File className="w-12 h-12 text-base-content/30 mx-auto mb-3" />
@@ -705,17 +917,31 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
         )}
       </div>
 
-      {/* File Content Modal with Monaco Editor */}
-      {selectedFile && (
+      {/* File Content Modal */}
+      {currentFileRef && (
         <div className="modal modal-open">
           <div className="modal-box w-11/12 max-w-7xl max-h-[95vh] p-0">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-base-300">
               <div className="flex items-center">
-                {getFileIcon(selectedFile.extension)}
+                {currentFileRef.isReference && currentFileRef.originalFile && (
+                  <button
+                    className="btn btn-ghost btn-sm mr-2"
+                    onClick={handleBackToOriginal}
+                    title="Back to original file"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                )}
+                {getFileIcon(currentFileRef.file.extension)}
                 <div className="ml-3">
                   <h3 className="text-lg font-semibold flex items-center">
-                    {selectedFile.name}
+                    {currentFileRef.file.name}
+                    {currentFileRef.isReference && (
+                      <span className="ml-2 px-2 py-1 text-xs bg-info/20 text-info rounded">
+                        Reference
+                      </span>
+                    )}
                     {hasUnsavedChanges && (
                       <span
                         className="ml-2 w-2 h-2 bg-warning rounded-full"
@@ -724,8 +950,14 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
                     )}
                   </h3>
                   <p className="text-sm text-base-content/60 font-mono">
-                    {selectedFile.path}
+                    {currentFileRef.file.path}
                   </p>
+                  {currentFileRef.isReference &&
+                    currentFileRef.originalFile && (
+                      <p className="text-xs text-info">
+                        Referenced from: {currentFileRef.originalFile.name}
+                      </p>
+                    )}
                 </div>
               </div>
 
@@ -760,7 +992,7 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
                   </button>
                 </div>
 
-                {/* Edit Toggle Button */}
+                {/* Edit Toggle Button - Only show for non-reference files or allow editing */}
                 <button
                   className={`btn btn-sm ${
                     isEditing ? 'btn-warning' : 'btn-outline btn-primary'
@@ -828,9 +1060,17 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
               ) : (
                 <Editor
                   height="100%"
-                  language={getMonacoLanguage(selectedFile.extension)}
+                  language={getMonacoLanguage(currentFileRef.file.extension)}
                   value={editedContent}
                   onChange={handleEditorChange}
+                  onMount={(editor) => {
+                    editorRef.current = editor
+                    setupReferenceNavigation(
+                      editor,
+                      editedContent,
+                      currentFileRef.file
+                    )
+                  }}
                   options={{
                     readOnly: !isEditing,
                     minimap: { enabled: true },
@@ -873,11 +1113,17 @@ const ProjectFileViewer: React.FC<ProjectFileViewerProps> = ({
             <div className="flex items-center justify-between p-3 border-t border-base-300 bg-base-200">
               <div className="flex items-center gap-4 text-sm text-base-content/70">
                 <span>
-                  Language: {getMonacoLanguage(selectedFile.extension)}
+                  Language: {getMonacoLanguage(currentFileRef.file.extension)}
                 </span>
                 <span>Lines: {editedContent.split('\n').length}</span>
                 <span>Characters: {editedContent.length}</span>
                 <span>Font: {fontSize}px</span>
+                {currentFileRef.isReference && (
+                  <span className="text-info">
+                    • Reference Navigation Active - Click import paths to
+                    navigate
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2 text-sm">
