@@ -5,6 +5,7 @@ import { Provider } from 'react-redux'
 import { store } from '../shared/store'
 import { Manrope } from 'next/font/google'
 import Layout from '@/shared/components/Layout'
+import { AuthProvider } from '@/shared/api/AuthContext'
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -16,9 +17,11 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <Provider store={store}>
       <div className={`${manrope.variable} font-manrope`}>
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
+        <AuthProvider>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        </AuthProvider>
       </div>
     </Provider>
   )
