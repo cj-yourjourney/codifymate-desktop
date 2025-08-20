@@ -25,7 +25,7 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col gap-4 mt-4 w-full">
-              <Link href="/login" className="btn btn-primary w-full">
+              <Link href="/sign-in" className="btn btn-primary w-full">
                 Login
               </Link>
             </div>

@@ -1,30 +1,57 @@
-// components/SignInForm.tsx
-import { useState, ChangeEvent, FormEvent } from 'react'
+// components/SignInForm.tsx (updated with Redux)
+import { useState, ChangeEvent, FormEvent, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
+import {
+  signIn,
+  selectIsLoading,
+  selectAuthError,
+  selectIsAuthenticated,
+  clearError,
+  clearFieldError
+} from './state/authSlice' // You'll need to adjust this path
+
 
 interface SignInUserData {
-  email: string
+  username: string // Changed from email to username to match API
   password: string
 }
 
 interface ValidationErrors {
-  email?: string
+  username?: string
   password?: string
 }
 
 const SignInForm: React.FC = () => {
+  const dispatch = useAppDispatch()
   const router = useRouter()
 
-  // Mock loading state for UI testing
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<any>(null)
+  // Redux state
+  const isLoading = useAppSelector(selectIsLoading)
+  const error = useAppSelector(selectAuthError)
+  const isAuthenticated = useAppSelector(selectIsAuthenticated)
 
+  // Local form state
   const [formData, setFormData] = useState<SignInUserData>({
-    email: '',
+    username: '',
     password: ''
   })
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
+
+  // Redirect to dashboard if authenticated
+  useEffect(() => {
+    // if (isAuthenticated) {
+    //   router.push('/dashboard')
+    // }
+  }, [isAuthenticated, router])
+
+  // Clear general errors when component unmounts or when starting a new sign in
+  useEffect(() => {
+    return () => {
+      dispatch(clearError())
+    }
+  }, [dispatch])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -40,15 +67,18 @@ const SignInForm: React.FC = () => {
         [name]: ''
       }))
     }
+
+    // Clear Redux field error when user starts typing
+    if (error && error[name as keyof typeof error]) {
+      dispatch(clearFieldError(name as 'username' | 'password'))
+    }
   }
 
   const validateForm = (): ValidationErrors => {
     const errors: ValidationErrors = {}
 
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address'
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required'
     }
 
     if (!formData.password) {
@@ -67,23 +97,26 @@ const SignInForm: React.FC = () => {
       return
     }
 
-    // Mock login process for UI testing
-    setIsLoading(true)
-    setError(null)
+    // Clear previous errors
+    dispatch(clearError())
+    setValidationErrors({})
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      console.log('Sign in attempt with:', formData)
-      // You can uncomment this to test success flow
-      // router.push('/dashboard')
-    }, 2000)
+    // Dispatch sign in action
+    const result = await dispatch(signIn(formData))
+
+    // Handle the result if needed for additional UI feedback
+    if (signIn.fulfilled.match(result)) {
+      console.log('Sign in successful')
+      // Navigation will happen automatically via useEffect
+    } else if (signIn.rejected.match(result)) {
+      console.log('Sign in failed:', result.payload)
+    }
   }
 
   const renderFieldError = (fieldName: keyof ValidationErrors) => {
     const validationError = validationErrors[fieldName]
 
-    // Handle Django API error format - errors can be arrays or strings
+    // Handle API error format - errors can be arrays or strings
     let serverError: string | null = null
     if (error && error[fieldName]) {
       if (Array.isArray(error[fieldName])) {
@@ -136,19 +169,19 @@ const SignInForm: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="form-control">
               <input
-                type="email"
-                name="email"
-                value={formData.email}
+                type="text"
+                name="username"
+                value={formData.username}
                 onChange={handleChange}
-                placeholder="Email"
+                placeholder="Username"
                 className={`input input-bordered w-full ${
-                  validationErrors.email || (error && error.email)
+                  validationErrors.username || (error && error.username)
                     ? 'input-error'
                     : ''
                 }`}
                 disabled={isLoading}
               />
-              {renderFieldError('email')}
+              {renderFieldError('username')}
             </div>
 
             <div className="form-control">
@@ -189,6 +222,7 @@ const SignInForm: React.FC = () => {
               <button
                 onClick={() => router.push('/sign-up')}
                 className="link link-primary"
+                disabled={isLoading}
               >
                 Sign Up
               </button>
