@@ -1,6 +1,6 @@
 // store/slices/signinSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { API_ENDPOINTS, apiRequest } from '@/shared/api/config'
+import { apiClient } from '@/shared/api/config'
 
 // Types
 interface AuthTokens {
@@ -42,13 +42,10 @@ export const signIn = createAsyncThunk<
   { rejectValue: SignInError }
 >('signin/signIn', async (credentials, { rejectWithValue }) => {
   try {
-    // Use the centralized API request function
-    const tokens: AuthTokens = await apiRequest(API_ENDPOINTS.SIGNIN_USER, {
-      method: 'POST',
-      body: JSON.stringify(credentials)
-    })
+    // Use the centralized apiClient instead of direct apiRequest
+    const tokens: AuthTokens = await apiClient.signin(credentials)
 
-    // Store tokens in Electron secure storage only
+    // Store tokens in Electron secure storage
     try {
       await window.electronAPI.storeToken('access_token', tokens.access)
       await window.electronAPI.storeToken('refresh_token', tokens.refresh)

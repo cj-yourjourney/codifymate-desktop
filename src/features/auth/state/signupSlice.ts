@@ -1,8 +1,6 @@
 // store/slices/signupSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { API_ENDPOINTS, apiRequest } from '@/shared/api/config'
-import { tokenStorage } from '@/shared/utils/tokenStorage'
-
+import { apiClient } from '@/shared/api/config'
 
 // Types
 export interface User {
@@ -45,19 +43,48 @@ export const registerUser = createAsyncThunk<
   { rejectValue: SignupError }
 >('signup/registerUser', async (userData, { rejectWithValue }) => {
   try {
-    const data = await apiRequest(API_ENDPOINTS.REGISTER_USER, {
-      method: 'POST',
-      body: JSON.stringify(userData)
-    })
+    // Use the centralized apiClient instead of direct apiRequest
+    const data = await apiClient.register(userData)
 
-    // Store tokens securely after successful registration
+    // Store tokens securely after successful registration using Electron storage
     if (data.access && data.refresh) {
-      await tokenStorage.storeTokens(data.access, data.refresh)
+      try {
+        await window.electronAPI.storeToken('access_token', data.access)
+        await window.electronAPI.storeToken('refresh_token', data.refresh)
+
+        console.log('=== Registration tokens stored successfully ===')
+        console.log(
+          'Access Token:',
+          await window.electronAPI.getToken('access_token')
+        )
+        console.log(
+          'Refresh Token:',
+          await window.electronAPI.getToken('refresh_token')
+        )
+        console.log('===============================================')
+      } catch (storageError) {
+        console.warn('Failed to store tokens after registration:', storageError)
+        // Don't fail the registration if token storage fails
+      }
     }
 
     return data
   } catch (error: any) {
-    return rejectWithValue(error)
+    // Handle different error response formats
+    let formattedError: SignupError = {}
+
+    if (error.message) {
+      formattedError.message = error.message
+    } else if (error.error) {
+      formattedError.message = error.error
+    } else if (typeof error === 'object') {
+      // Handle field-specific errors from Django
+      formattedError = error
+    } else {
+      formattedError.message = 'Registration failed. Please try again.'
+    }
+
+    return rejectWithValue(formattedError)
   }
 })
 
@@ -83,7 +110,7 @@ const signupSlice = createSlice({
       state.user = null
       state.isRegistered = false
       state.error = null
-      // Tokens are now handled by secure storage, not Redux
+      // Tokens are now handled by Electron secure storage, not Redux
     }
   },
   extraReducers: (builder) => {
@@ -99,7 +126,7 @@ const signupSlice = createSlice({
           state.user = action.payload.user
           state.isRegistered = true
           state.error = null
-          // Tokens are now stored securely via tokenStorage
+          // Tokens are now stored securely via Electron storage
         }
       )
       .addCase(registerUser.rejected, (state, action) => {

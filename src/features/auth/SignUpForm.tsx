@@ -9,7 +9,6 @@ import {
 import { useRouter } from 'next/router'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import type { RegisterUserData } from './state/signupSlice'
-import { tokenStorage } from '@/shared/utils/tokenStorage'
 
 interface ValidationErrors {
   username?: string
@@ -22,7 +21,7 @@ interface ValidationErrors {
 const SignUpForm: React.FC = () => {
   const dispatch = useAppDispatch()
   const router = useRouter()
-  tokenStorage.debugTokens()
+
   const { isLoading, error, isRegistered } = useAppSelector(
     (state) => state.signup
   )
@@ -40,9 +39,8 @@ const SignUpForm: React.FC = () => {
   useEffect(() => {
     if (isRegistered) {
       // Redirect to login or dashboard after successful registration
-      // router.push('/login')
-      // Call this to see tokens
-      tokenStorage.debugTokens()
+      // router.push('/sign-in')
+      console.log('Registration successful! Tokens stored in secure storage.')
     }
   }, [isRegistered, router])
 
@@ -111,7 +109,20 @@ const SignUpForm: React.FC = () => {
       return
     }
 
-    dispatch(registerUser(formData))
+    // Clear previous errors
+    dispatch(clearSignupError())
+    setValidationErrors({})
+
+    // Dispatch registration action
+    const result = await dispatch(registerUser(formData))
+
+    // Handle the result if needed for additional UI feedback
+    if (registerUser.fulfilled.match(result)) {
+      console.log('Registration successful')
+      // Navigation will happen automatically via useEffect
+    } else if (registerUser.rejected.match(result)) {
+      console.log('Registration failed:', result.payload)
+    }
   }
 
   const renderFieldError = (fieldName: keyof ValidationErrors) => {
@@ -262,6 +273,7 @@ const SignUpForm: React.FC = () => {
               <button
                 onClick={() => router.push('/sign-in')}
                 className="link link-primary"
+                disabled={isLoading}
               >
                 Sign In
               </button>

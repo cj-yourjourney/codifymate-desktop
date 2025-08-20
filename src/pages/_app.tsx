@@ -5,7 +5,7 @@ import { Provider } from 'react-redux'
 import { store } from '../shared/store'
 import { Manrope } from 'next/font/google'
 import Layout from '@/shared/components/Layout'
-import { AuthProvider } from '@/shared/api/AuthContext'
+import { AuthProvider } from '@/shared/components/AuthContext'
 
 const manrope = Manrope({
   subsets: ['latin'],

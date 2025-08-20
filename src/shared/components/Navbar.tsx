@@ -1,6 +1,6 @@
 // src/components/layout/Navbar.tsx
 import React from 'react'
-import { useAuth } from '../api/AuthContext'
+import { useAuth } from './AuthContext'
 
 const Navbar: React.FC = () => {
   const { user, loading, error, logout } = useAuth()

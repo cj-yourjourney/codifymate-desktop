@@ -1,6 +1,11 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { apiClient, UserDetailResponse } from './apiClient'
+import {
+  apiClient,
+  tokenUtils,
+  UserDetailResponse,
+  setGlobalLogoutHandler
+} from '@/shared/api/config'
 
 interface AuthContextType {
   user: UserDetailResponse | null
@@ -27,7 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null)
 
       // Check if token exists and is valid
-      const isTokenValid = await window.electronAPI.isTokenValid('access_token')
+      const isTokenValid = await tokenUtils.isTokenValid()
 
       if (!isTokenValid) {
         setUser(null)
@@ -38,7 +43,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData)
     } catch (err) {
       console.error('Failed to fetch user:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch user')
+
+      // Handle authentication errors specifically
+      if (err && typeof err === 'object' && 'isAuthError' in err) {
+        setError('Authentication failed. Please login again.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to fetch user')
+      }
+
       setUser(null)
     } finally {
       setLoading(false)
@@ -52,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       // Clear tokens from storage
-      await window.electronAPI.clearAllTokens()
+      await tokenUtils.clearAllTokens()
       setUser(null)
       setError(null)
     } catch (err) {
@@ -61,6 +73,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   useEffect(() => {
+    // Set up the global logout handler
+    setGlobalLogoutHandler(() => {
+      setUser(null)
+      setError('Session expired. Please login again.')
+    })
+
     fetchUser()
   }, [])
 
