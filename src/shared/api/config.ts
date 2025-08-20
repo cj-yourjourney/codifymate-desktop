@@ -5,7 +5,9 @@ const API_BASE_URL =
 export const API_ENDPOINTS = {
   GENERATE_CODE: `${API_BASE_URL}/api/prompt/generate-code/`,
   REFINE_CODE: `${API_BASE_URL}/api/prompt/refine-code/`,
-  REGISTER_USER: `${API_BASE_URL}/api/users/register/`
+  REGISTER_USER: `${API_BASE_URL}/api/users/register/`,
+  SIGNIN_USER: `${API_BASE_URL}/api/users/token/`,
+  REFRESH_TOKEN: `${API_BASE_URL}/api/users/token/refresh/`
   // Add other endpoints as needed
 } as const
 

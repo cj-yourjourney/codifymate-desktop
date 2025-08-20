@@ -6,7 +6,7 @@ import promptRefinementReducer from '@/features/aiCodeAssistant/promptRefinement
 import promptClarificationReducer from '@/features/aiCodeAssistant/promptClarification/state/promptClarificationSlice'
 import codeGenerationReducer from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 import signupReducer from '@/features/auth/state/signupSlice'
-import authReducer from '@/features/auth/state/authSlice'
+import signinReducer from '@/features/auth/state/signinSlice'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -34,7 +34,7 @@ export const store = configureStore({
     codeGeneration: codeGenerationReducer,
 
     signup: signupReducer,
-    auth: authReducer
+    signin: signinReducer,
   },
   devTools: false,
   // Use enhancers callback function for Redux Toolkit compatibility
