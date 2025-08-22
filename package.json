@@ -8,10 +8,10 @@
     "dev:redux-devtools": "redux-devtools --hostname localhost --port 9000",
     "dev:next": "next dev --turbo",
     "dev:electron": "wait-on http://localhost:3000 && npm run build:electron && cross-env NODE_ENV=development electron .",
-    "build": "next build && npm run build:electron",
+    "build": "cross-env NODE_ENV=production next build && npm run build:electron",
     "build:electron": "tsc -p main/tsconfig.json",
     "predist": "node scripts/cleanup-dmg.js",
-    "dist": "npm run build && electron-builder",
+    "dist": "cross-env NODE_ENV=production npm run build && electron-builder",
     "dist:safe": "npm run predist && npm run dist",
     "start": "npm run build:electron && electron .",
     "clean": "rm -rf out .next dist-electron release dist"
@@ -26,7 +26,8 @@
       "out/**/*",
       "dist-electron/**/*",
       "node_modules/**/*",
-      "package.json"
+      "package.json",
+      "!**/*.map"
     ],
     "mac": {
       "category": "public.app-category.productivity"

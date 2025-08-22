@@ -69,27 +69,31 @@ export const signIn = createAsyncThunk<
 
     // Don't return tokens since we're not storing them in Redux
     return
-  } catch (error: any) {
-    // Handle different error response formats from TokenObtainPairView
+  } catch (error: unknown) {
     let formattedError: SignInError = {}
 
-    if (error.detail) {
-      // TokenObtainPairView typically returns: { "detail": "No active account found with the given credentials" }
-      formattedError.message = error.detail
-    } else if (error.non_field_errors) {
-      // Handle non_field_errors (can be string or array)
-      const nonFieldErrors = Array.isArray(error.non_field_errors)
-        ? error.non_field_errors[0]
-        : error.non_field_errors
+    if (typeof error === 'object' && error !== null && 'detail' in error) {
+      formattedError.message = (error as { detail: string }).detail
+    } else if (
+      typeof error === 'object' &&
+      error !== null &&
+      'non_field_errors' in error
+    ) {
+      const nonFieldErrors = Array.isArray(
+        (error as { non_field_errors: string[] }).non_field_errors
+      )
+        ? (error as { non_field_errors: string[] }).non_field_errors[0]
+        : (error as { non_field_errors: string }).non_field_errors
       formattedError.message = nonFieldErrors
-    } else if (error.error) {
-      // Handle general error messages from apiRequest
-      formattedError.message = error.error
-    } else if (typeof error === 'object') {
-      // Handle field-specific errors (username, password) or other structured errors
-      formattedError = error
+    } else if (
+      typeof error === 'object' &&
+      error !== null &&
+      'error' in error
+    ) {
+      formattedError.message = (error as { error: string }).error
+    } else if (typeof error === 'object' && error !== null) {
+      formattedError = error as SignInError
     } else {
-      // Handle network errors or other unexpected errors
       formattedError.message =
         'Network error. Please check your connection and try again.'
     }
@@ -111,6 +115,7 @@ export const checkStoredTokens = createAsyncThunk<
 
     return accessTokenExists && refreshTokenExists
   } catch (error) {
+    console.log(error)
     return rejectWithValue('Failed to check stored tokens')
   }
 })
@@ -127,6 +132,7 @@ export const signOut = createAsyncThunk<void, void, { rejectValue: string }>(
 
       console.log('=== Tokens cleared successfully ===')
     } catch (error) {
+      console.log(error)
       return rejectWithValue('Failed to clear stored tokens')
     }
   }

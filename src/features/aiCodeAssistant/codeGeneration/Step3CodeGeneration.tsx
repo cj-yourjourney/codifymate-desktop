@@ -1,267 +1,267 @@
 import React, { useState } from 'react'
-import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
 import {
-  AlertTriangle,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  X,
-  Move,
-  AlertOctagon,
-  Clipboard,
-  Copy,
+  Code,
   RefreshCw,
+  Copy,
+  Download,
+  
+  ChevronDown,
+  ChevronRight,
+  FileText,
   Lightbulb,
-  Trash2
+  Clock,
+  Sparkles,
+  Check,
+  X,
+  AlertCircle
 } from 'lucide-react'
 
-import {
-  refineCode,
-  setCurrentVersion,
-  clearError
-} from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
-import LoadingModal from '@/shared/components/LoadingModal'
-import CodeFileCard from './components/CodeFileCard'
-import ProjectFileViewer from './components/ProjectFileViewer'
+// Mock data for demonstration
+const mockVersions = [
+  {
+    id: 'v3',
+    version: 'Version 3',
+    timestamp: '2024-08-22T14:30:00Z',
+    refinement_prompt: 'Add proper error handling and loading states',
+    explanation:
+      'Enhanced the login component with comprehensive error handling, loading states, and improved user feedback. Added proper form validation and responsive design improvements.',
+    files_to_modify: [
+      {
+        file_path: '/src/components/LoginPage.jsx',
+        change_type: 'modify',
+        code: `import React, { useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
 
-interface Step3Props {
-  refinePrompt: string
-  setRefinePrompt: (value: string) => void
+const LoginPage = () => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const { login } = useAuth()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    
+    try {
+      await login(email, password)
+    } catch (err) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-center">Sign In</h2>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+        
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full flex justify-center py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-const Step3CodeGeneration: React.FC<Step3Props> = ({
-  refinePrompt,
-  setRefinePrompt
-}) => {
-  const dispatch = useAppDispatch()
-  const { generatedCodeVersions, currentVersion, loading, error, refining } =
-    useAppSelector((state) => state.codeGeneration)
-
-  // Get context from other slices for refinement
-  const { selectedRelevantFiles, manuallyAddedFiles, projectStructure } =
-    useAppSelector((state) => state.promptClarification)
-
-  // Get selectedFolder from promptRefinement state
-  const { selectedFolder } = useAppSelector((state) => state.promptRefinement)
-
-  // Local state for notifications
-  const [notification, setNotification] = useState<{
-    type: 'success' | 'error' | null
-    message: string
-  }>({ type: null, message: '' })
-
-  // File explorer state
-  const [selectedFile, setSelectedFile] = useState<{
-    path: string
-    name: string
-  } | null>(null)
-
-  // Get project path from projectStructure
-  const projectPath = projectStructure?.root
-
-  // Clear notification after 5 seconds
-  React.useEffect(() => {
-    if (notification.type) {
-      const timer = setTimeout(() => {
-        setNotification({ type: null, message: '' })
-      }, 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [notification])
-
-  // Clear error when component unmounts or when starting new refinement
-  React.useEffect(() => {
-    return () => {
-      dispatch(clearError())
-    }
-  }, [dispatch])
-
-  // Loading modal for code generation
-  if (loading) {
-    return (
-      <LoadingModal
-        isOpen={true}
-        title="Generating Code"
-        message="AI is creating optimized code based on your requirements..."
-      />
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="card bg-base-100 shadow-lg border border-error/20">
-          <div className="card-body text-center py-8">
-            <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-error" />
-            </div>
-            <h3 className="text-lg font-semibold text-error mb-2">
-              Generation Failed
-            </h3>
-            <p className="text-sm text-base-content/60 mb-4">{error}</p>
-            <button
-              className="btn btn-outline btn-error"
-              onClick={() => dispatch(clearError())}
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!currentVersion) {
-    return (
-      <div className="card bg-base-100 shadow-lg border border-base-200">
-        <div className="card-body text-center py-12">
-          <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-warning" />
-          </div>
-          <h3 className="text-lg font-semibold text-base-content mb-2">
-            No Code Generated
-          </h3>
-          <p className="text-base-content/60">
-            Please complete the previous steps to generate code.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setNotification({
-        type: 'success',
-        message: 'Code copied to clipboard!'
-      })
-    } catch (err) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to copy to clipboard'
-      })
-    }
-  }
-
-  // Updated file action handler - now called after diff confirmation
-  const handleFileAction = async (file: any) => {
-    try {
-      if (file.change_type === 'create') {
-        // For create: let user select where to save the new file
-        const result = await window.electronAPI.selectFolder()
-        if (!result) return
-
-        const fileName = file.file_path.split('/').pop() || 'newfile.js'
-        const newFilePath = `${result}/${fileName}`
-
-        // Write the new file
-        await window.electronAPI.writeFile(newFilePath, file.code)
-
-        setNotification({
-          type: 'success',
-          message: `File created successfully at ${newFilePath}`
-        })
-      } else if (file.change_type === 'modify') {
-        // For modify: directly update the file using the existing absolute path
-        try {
-          // Since we already have the absolute file path, directly write to it
-          await window.electronAPI.writeFile(file.file_path, file.code)
-
-          setNotification({
-            type: 'success',
-            message: `File updated successfully: ${file.file_path
-              .split('/')
-              .pop()}`
-          })
-        } catch (error) {
-          // If write fails (maybe directory doesn't exist), create the directory structure
-          console.warn(
-            'Direct write failed, attempting to create directory structure:',
-            error
-          )
-          await window.electronAPI.writeFile(file.file_path, file.code)
-
-          setNotification({
-            type: 'success',
-            message: `File created at: ${file.file_path.split('/').pop()}`
-          })
-        }
+export default LoginPage`
       }
-    } catch (error) {
-      console.error('File action error:', error)
-      setNotification({
-        type: 'error',
-        message: `Failed to ${file.change_type} file: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
-      })
-    }
+    ],
+    additional_notes:
+      'The component now includes proper loading states, error handling, and maintains the red button styling as requested. Consider adding form validation feedback and accessibility improvements.'
+  },
+  {
+    id: 'v2',
+    version: 'Version 2',
+    timestamp: '2024-08-22T14:15:00Z',
+    refinement_prompt:
+      'Make the button styling more modern and add hover effects',
+    explanation:
+      'Updated the login button with modern styling, hover effects, and improved visual hierarchy. The button now uses a red background with smooth transitions.',
+    files_to_modify: [
+      {
+        file_path: '/src/components/LoginPage.jsx',
+        change_type: 'modify',
+        code: `import React, { useState } from 'react'
+
+const LoginPage = () => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    console.log('Login attempt:', { email, password })
   }
 
-  const handleRefineCode = async () => {
-    if (!refinePrompt.trim()) {
-      setNotification({
-        type: 'error',
-        message: 'Please enter refinement instructions.'
-      })
-      return
-    }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
+        <h2 className="text-2xl font-bold text-center">Sign In</h2>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <button
+            onClick={handleSubmit}
+            className="w-full py-2 px-4 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
-    if (!currentVersion) {
-      setNotification({
-        type: 'error',
-        message: 'No current version to refine.'
-      })
-      return
-    }
+export default LoginPage`
+      }
+    ],
+    additional_notes:
+      'Added smooth hover transitions and improved button styling. The red background is now more vibrant with proper hover states.'
+  },
+  {
+    id: 'v1',
+    version: 'Version 1',
+    timestamp: '2024-08-22T14:00:00Z',
+    refinement_prompt: null,
+    explanation:
+      'Initial implementation of the LoginPage component with basic form structure and red button styling as requested.',
+    files_to_modify: [
+      {
+        file_path: '/src/components/LoginPage.jsx',
+        change_type: 'create',
+        code: `import React, { useState } from 'react'
 
-    // Clear any previous errors
-    dispatch(clearError())
+const LoginPage = () => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-    try {
-      await dispatch(
-        refineCode({
-          currentVersion,
-          refinementFeedback: refinePrompt,
-          selectedRelevantFiles: selectedRelevantFiles || [],
-          manuallyAddedFiles: manuallyAddedFiles || [],
-          projectStructure: projectStructure || {
-            type: 'unknown',
-            root: '.',
-            structure: { root_files: [] },
-            conventions: {},
-            framework: {}
-          }
-        })
-      ).unwrap()
-
-      // Clear the refinement prompt after successful refinement
-      setRefinePrompt('')
-      setNotification({
-        type: 'success',
-        message: 'Code refined successfully!'
-      })
-    } catch (error) {
-      console.error('Failed to refine code:', error)
-      setNotification({
-        type: 'error',
-        message: `Failed to refine code: ${
-          error instanceof Error ? error.message : 'Unknown error occurred'
-        }`
-      })
-    }
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    console.log('Login attempt:', { email, password })
   }
 
-  const handleVersionChange = (versionId: string) => {
-    dispatch(setCurrentVersion(versionId))
-    setNotification({
-      type: 'success',
-      message: 'Version switched successfully!'
-    })
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full space-y-8">
+        <h2 className="text-2xl font-bold text-center">Sign In</h2>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border rounded-md"
+            />
+          </div>
+          <button
+            onClick={handleSubmit}
+            className="w-full py-2 px-4 bg-red-500 text-white rounded-md"
+          >
+            Sign In
+          </button>
+        </div>sm font-medium">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border rounded-md"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2 px-4 bg-red-500 text-white rounded-md"
+          >
+            Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
 
-  const formatTimestamp = (timestamp: string) => {
+export default LoginPage`
+      }
+    ],
+    additional_notes:
+      'Basic login form with red button styling. Ready for further customization and enhancements.'
+  }
+]
+
+const Step3CodeGeneration = () => {
+  const [currentVersionId, setCurrentVersionId] = useState('v3')
+  const [refinePrompt, setRefinePrompt] = useState('')
+  const [isRefining, setIsRefining] = useState(false)
+  const [expandedFiles, setExpandedFiles] = useState(new Set(['0']))
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  const currentVersion =
+    mockVersions.find((v) => v.id === currentVersionId) || mockVersions[0]
+
+  const formatTimestamp = (timestamp: string | number | Date) => {
     const date = new Date(timestamp)
     return {
       date: date.toLocaleDateString(),
@@ -269,242 +269,365 @@ const Step3CodeGeneration: React.FC<Step3Props> = ({
     }
   }
 
-  const handleFileSelect = (filePath: string, fileName: string) => {
-    setSelectedFile({ path: filePath, name: fileName })
+  const handleRefine = async () => {
+    if (!refinePrompt.trim()) {
+      showNotification('Please enter refinement instructions', 'error')
+      return
+    }
+
+    setIsRefining(true)
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsRefining(false)
+      setRefinePrompt('')
+      showNotification('Code refined successfully!', 'success')
+      // In real implementation, this would add a new version
+    }, 2000)
   }
 
-  const handleCloseFileViewer = () => {
-    setSelectedFile(null)
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 4000)
+  }
+
+  interface ToggleFileExpanded {
+    (index: number): void
+  }
+
+  const toggleFileExpanded: ToggleFileExpanded = (index) => {
+    const newExpanded: Set<string> = new Set(expandedFiles)
+    const key = index.toString()
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key)
+    } else {
+      newExpanded.add(key)
+    }
+    setExpandedFiles(newExpanded)
+  }
+
+  interface ClipboardCopier {
+    copy(text: string): Promise<void>
+  }
+
+  const copyToClipboard: ClipboardCopier['copy'] = async (text: string): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(text)
+      showNotification('Copied to clipboard!', 'success')
+    } catch (err: unknown) {
+      console.log(err)
+      showNotification('Failed to copy', 'error')
+    }
+  }
+
+  interface GeneratedFile {
+    file_path: string
+    change_type: string
+    code: string
+  }
+
+  const downloadFile = (file: GeneratedFile): void => {
+    const blob = new Blob([file.code], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a') as HTMLAnchorElement
+    a.href = url
+    a.download = file.file_path.split('/').pop() || ''
+    a.click()
+    URL.revokeObjectURL(url)
+    showNotification('File downloaded!', 'success')
   }
 
   return (
-    <div className="space-y-8">
-      {/* Refinement Loading Modal */}
-      <LoadingModal
-        isOpen={refining}
-        title="Refining Code"
-        message="AI is improving your code based on your feedback..."
-      />
-
-      {/* Notification Toast */}
-      {notification.type && (
-        <div
-          className={`alert shadow-lg ${
-            notification.type === 'success' ? 'alert-success' : 'alert-error'
-          }`}
-        >
-          <div className="flex justify-between items-center w-full">
-            <div className="flex items-center">
-              {notification.type === 'success' ? (
-                <CheckCircle className="stroke-current flex-shrink-0 h-6 w-6 mr-2" />
-              ) : (
-                <XCircle className="stroke-current flex-shrink-0 h-6 w-6 mr-2" />
-              )}
-              <span className="text-sm">{notification.message}</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center mb-2">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-4">
+              <Code className="w-6 h-6 text-white" />
             </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setNotification({ type: null, message: '' })}
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Code Generation
+              </h1>
+              <p className="text-gray-600">
+                Review, refine, and manage your generated code
+              </p>
+            </div>
           </div>
         </div>
-      )}
 
-      <div className="grid xl:grid-cols-2 gap-8">
-        {/* Generated Code Section - Now takes 1 column (50%) */}
-        <div className="space-y-6">
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-6">
-              <div className="flex items-center justify-between mb-6">
+        {/* Notification */}
+        {notification && (
+          <div
+            className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
+              notification.type === 'success'
+                ? 'bg-green-500 text-white'
+                : 'bg-red-500 text-white'
+            }`}
+          >
+            {notification.type === 'success' ? (
+              <Check className="w-5 h-5" />
+            ) : (
+              <X className="w-5 h-5" />
+            )}
+            <span>{notification.message}</span>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Code Output (2/3 width) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Version Selector */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
-                    <Move className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-base-content">
-                      Generated Code
-                    </h3>
-                    <p className="text-sm text-base-content/60">
-                      {currentVersion.files_to_modify.length} files generated
-                    </p>
-                  </div>
+                  <Clock className="w-5 h-5 text-gray-500 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Version History
+                  </h3>
                 </div>
-                <button
-                  className="btn btn-outline btn-primary btn-sm"
-                  onClick={() =>
-                    copyToClipboard(
-                      currentVersion.files_to_modify
-                        .map((f) => f.code)
-                        .join('\n\n')
-                    )
-                  }
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copy All
-                </button>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">
+                    {mockVersions.length} versions
+                  </span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
               </div>
 
-              {/* Version Selector */}
-              {generatedCodeVersions.length > 1 && (
-                <div className="mb-6">
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Version History
-                      </span>
-                      <span className="label-text-alt badge badge-primary badge-sm">
-                        {generatedCodeVersions.length} versions
-                      </span>
-                    </label>
-                    <select
-                      className="select select-bordered focus:select-primary"
-                      value={currentVersion.id}
-                      onChange={(e) => handleVersionChange(e.target.value)}
-                      disabled={refining}
-                    >
-                      {[...generatedCodeVersions].reverse().map((version) => {
-                        const { date, time } = formatTimestamp(
-                          version.timestamp
-                        )
-                        return (
-                          <option key={version.id} value={version.id}>
-                            {version.version} - {date} at {time}
-                            {version.refinement_prompt ? ' (Refined)' : ''}
-                          </option>
-                        )
-                      })}
-                    </select>
-                  </div>
-                </div>
-              )}
+              <select
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={currentVersionId}
+                onChange={(e) => setCurrentVersionId(e.target.value)}
+              >
+                {mockVersions.map((version) => {
+                  const { date, time } = formatTimestamp(version.timestamp)
+                  return (
+                    <option key={version.id} value={version.id}>
+                      {version.version} - {date} at {time}
+                      {version.refinement_prompt ? ' (Refined)' : ' (Original)'}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
 
-              {/* AI Explanation */}
-              <div className="mb-6 bg-base-200 rounded-lg border border-primary/20 p-5">
-                <div className="flex items-start mb-3">
-                  <Lightbulb className="w-6 h-6 text-primary mr-3 mt-0.5 flex-shrink-0" />
-                  <h3 className="text-lg font-semibold">AI Explanation</h3>
+            {/* AI Explanation */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
+              <div className="flex items-start mb-4">
+                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                  <Lightbulb className="w-5 h-5 text-white" />
                 </div>
-
-                <div className="bg-base-200 border border-base-300 rounded-lg px-4 py-3 mb-3">
-                  <p className="text-sm leading-relaxed text-base-content/80 whitespace-pre-wrap">
-                    {currentVersion.explanation || 'No explanation provided.'}{' '}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    AI Explanation
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    {currentVersion.explanation}
                   </p>
                 </div>
-
-                {currentVersion.additional_notes && (
-                  <div className="mt-4 border-t border-base-300 pt-3">
-                    <h4 className="text-md font-medium text-base-content mb-2">
-                      Additional Notes
-                    </h4>
-                    <div className="text-base-content/70 text-sm leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap px-2">
-                      {currentVersion.additional_notes}
-                    </div>
-                  </div>
-                )}
-
-                {currentVersion.refinement_prompt && (
-                  <div className="mt-4 border-t border-base-300 pt-3">
-                    <h4 className="text-md font-medium text-base-content mb-2">
-                      Last Refinement
-                    </h4>
-                    <div className="text-base-content/70 text-sm leading-relaxed whitespace-pre-wrap px-2">
-                      {currentVersion.refinement_prompt}
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Code Files */}
-              <div className="space-y-6">
-                {currentVersion.files_to_modify.map((file, index) => (
-                  <CodeFileCard
-                    key={index}
-                    file={file}
-                    onFileAction={handleFileAction}
-                    onCopy={copyToClipboard}
-                  />
-                ))}
-              </div>
+              {currentVersion.refinement_prompt && (
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Last Refinement
+                  </h4>
+                  <p className="text-sm text-gray-600 bg-white p-3 rounded-lg border">
+                    {currentVersion.refinement_prompt}
+                  </p>
+                </div>
+              )}
+
+              {currentVersion.additional_notes && (
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    Additional Notes
+                  </h4>
+                  <p className="text-sm text-gray-600 bg-white p-3 rounded-lg border">
+                    {currentVersion.additional_notes}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Code Files */}
+            <div className="space-y-4">
+              {currentVersion.files_to_modify.map((file, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+                >
+                  <div className="p-4 border-b border-gray-100 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => toggleFileExpanded(index)}
+                          className="mr-2 p-1 rounded hover:bg-gray-200 transition-colors"
+                        >
+                          {expandedFiles.has(index.toString()) ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </button>
+                        <FileText className="w-5 h-5 text-gray-500 mr-2" />
+                        <div>
+                          <h4 className="font-medium text-gray-900">
+                            {file.file_path.split('/').pop()}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {file.file_path}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            file.change_type === 'create'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}
+                        >
+                          {file.change_type}
+                        </span>
+
+                        <button
+                          onClick={() => copyToClipboard(file.code)}
+                          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                          title="Copy code"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => downloadFile(file)}
+                          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                          title="Download file"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {expandedFiles.has(index.toString()) && (
+                    <div className="p-4">
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+                        <code>{file.code}</code>
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Right Panel - Now also takes 1 column (50%) */}
-        <div className="space-y-6">
-          {/* Refinement Input */}
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-6">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
-                  <RefreshCw className="w-5 h-5 text-primary" />
+          {/* Right Column - Refinement Panel (1/3 width) */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
+              <div className="flex items-center mb-6">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-base-content">
+                  <h3 className="text-lg font-semibold text-gray-900">
                     Refine Code
                   </h3>
-                  <p className="text-sm text-base-content/60">
-                    Improve and customize
+                  <p className="text-sm text-gray-600">
+                    Improve and customize your code
                   </p>
                 </div>
               </div>
 
-              <div className="form-control mb-4">
-                <textarea
-                  className="textarea textarea-bordered h-32 text-sm resize-none focus:textarea-primary transition-colors"
-                  placeholder="e.g., Add loading states, improve error handling, optimize performance, add TypeScript types..."
-                  value={refinePrompt}
-                  onChange={(e) =>
-                    setRefinePrompt(e.target.value.slice(0, 500))
-                  }
-                  disabled={refining}
-                  maxLength={500}
-                />
-                <div className="label">
-                  <span className="label-text-alt text-base-content/50">
-                    {refinePrompt.length}/500
-                  </span>
-                  <span className="label-text-alt text-base-content/50">
-                    💡 Be specific for better results
-                  </span>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Refinement Instructions
+                  </label>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    rows={6}
+                    placeholder="e.g., Add loading states, improve error handling, optimize performance, add TypeScript types..."
+                    value={refinePrompt}
+                    onChange={(e) =>
+                      setRefinePrompt(e.target.value.slice(0, 500))
+                    }
+                    disabled={isRefining}
+                    maxLength={500}
+                  />
+                  <div className="flex justify-between mt-2 text-xs text-gray-500">
+                    <span>{refinePrompt.length}/500 characters</span>
+                    <span>💡 Be specific for better results</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2">
                 <button
-                  className="btn btn-primary flex-1"
-                  onClick={handleRefineCode}
-                  disabled={refining || !refinePrompt.trim()}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium py-3 px-4 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  onClick={handleRefine}
+                  disabled={isRefining || !refinePrompt.trim()}
                 >
-                  {refining ? (
+                  {isRefining ? (
                     <>
-                      <span className="loading loading-spinner loading-sm mr-2"></span>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                       Refining...
                     </>
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Refine
+                      Refine Code
                     </>
                   )}
                 </button>
-                <button
-                  className="btn btn-outline btn-primary"
-                  onClick={() => setRefinePrompt('')}
-                  disabled={refining}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+
+                {refinePrompt && (
+                  <button
+                    className="w-full text-gray-500 font-medium py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => setRefinePrompt('')}
+                    disabled={isRefining}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  Quick Actions
+                </h4>
+                <div className="space-y-2">
+                  <button
+                    onClick={() =>
+                      copyToClipboard(
+                        currentVersion.files_to_modify
+                          .map((f) => f.code)
+                          .join('\n\n')
+                      )
+                    }
+                    className="w-full text-left p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy All Code
+                  </button>
+                  <button
+                    onClick={() => {
+                      currentVersion.files_to_modify.forEach((file) =>
+                        downloadFile(file)
+                      )
+                    }}
+                    className="w-full text-left p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download All Files
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Project File Viewer Component */}
-          <ProjectFileViewer
-            selectedFolder={selectedFolder}
-            onFileSelect={handleFileSelect}
-          />
         </div>
       </div>
     </div>

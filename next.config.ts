@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production'
+
 const nextConfig = {
   output: 'export',
   distDir: 'out',
@@ -6,9 +8,7 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  // Use relative paths for static assets
-  assetPrefix: process.env.NODE_ENV === 'production' ? './' : undefined,
-  // Ensure proper base path handling
+  assetPrefix: isProd ? './' : undefined, // ✅ Relative paths for Electron
   basePath: ''
 }
 

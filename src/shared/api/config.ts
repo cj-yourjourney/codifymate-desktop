@@ -28,6 +28,7 @@ export interface UserDetailResponse {
   last_name: string
   date_joined: string
   last_login: string
+  credits: number
 }
 
 // Token response interface
@@ -244,7 +245,7 @@ export const apiRequest = async (
 
     // Handle final response
     if (!finalResponse.ok) {
-      let errorData: any = {}
+      let errorData: unknown
 
       try {
         errorData = await finalResponse.json()
@@ -256,13 +257,19 @@ export const apiRequest = async (
         }
       }
 
+      // Force it into a shape we expect
+      const formattedError: Record<string, unknown> =
+        typeof errorData === 'object' && errorData !== null
+          ? { ...errorData }
+          : { error: String(errorData) }
+
       // Mark authentication errors
       if (finalResponse.status === 401) {
-        errorData.isAuthError = true
-        errorData.message = 'Authentication failed. Please login again.'
+        formattedError.isAuthError = true
+        formattedError.message = 'Authentication failed. Please login again.'
       }
 
-      throw errorData
+      throw formattedError
     }
 
     const data = await finalResponse.json()
@@ -276,13 +283,13 @@ export const apiRequest = async (
 // Specific API methods for different endpoints
 export const apiClient = {
   // User authentication endpoints (no auth required)
-  register: (userData: any) =>
+  register: (userData: unknown) =>
     apiRequest(API_ENDPOINTS.REGISTER_USER, {
       method: 'POST',
       body: JSON.stringify(userData)
     }),
 
-  signin: async (credentials: any): Promise<TokenResponse> => {
+  signin: async (credentials: unknown): Promise<TokenResponse> => {
     const response = await apiRequest(API_ENDPOINTS.SIGNIN_USER, {
       method: 'POST',
       body: JSON.stringify(credentials)
@@ -305,13 +312,13 @@ export const apiClient = {
       method: 'GET'
     }),
 
-  generateCode: (promptData: any) =>
+  generateCode: (promptData: unknown) =>
     apiRequest(API_ENDPOINTS.GENERATE_CODE, {
       method: 'POST',
       body: JSON.stringify(promptData)
     }),
 
-  refineCode: (refineData: any) =>
+  refineCode: (refineData: unknown) =>
     apiRequest(API_ENDPOINTS.REFINE_CODE, {
       method: 'POST',
       body: JSON.stringify(refineData)

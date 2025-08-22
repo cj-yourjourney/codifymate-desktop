@@ -1,11 +1,9 @@
 import React, { useState } from 'react'
 import {
-  Edit3,
+
   BarChart3,
-  CheckCircle2,
-  HelpCircle,
   FileText,
-  Sparkles
+
 } from 'lucide-react'
 
 interface Assessment {
@@ -97,9 +95,7 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
   }
 
   const shouldShowSelectFiles = assessment && assessment.score >= 7
-  const buttonText = shouldShowSelectFiles
-    ? 'Select Reference Files'
-    : 'Assess Your Prompt'
+
 
   const handleButtonClick = () => {
     if (shouldShowSelectFiles && onNavigateToStep2) {

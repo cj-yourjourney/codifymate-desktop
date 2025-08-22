@@ -1,6 +1,7 @@
 // src/shared/store/slices/authSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { apiRequest, API_ENDPOINTS, tokenStorage } from '@/shared/api/config'
+import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
+import { tokenStorage } from '@/shared/utils/tokenStorage'
 
 export interface User {
   id: number
@@ -36,7 +37,7 @@ export const signin = createAsyncThunk(
     })
 
     // Store tokens
-    await tokenStorage.setTokens(response.access, response.refresh)
+    await tokenStorage.storeTokens(response.access, response.refresh)
 
     return response
   }
@@ -71,7 +72,7 @@ export const register = createAsyncThunk(
 export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async () => {
-    const isValid = await tokenStorage.isTokenValid()
+    const isValid = await tokenStorage.isAccessTokenValid()
     if (isValid) {
       // Fetch user details to confirm authentication
       const response = await apiRequest(API_ENDPOINTS.USER_DETAIL)
@@ -109,6 +110,7 @@ const authSlice = createSlice({
       })
       .addCase(signin.fulfilled, (state, action) => {
         state.isLoading = false
+        console.log(action)
         // Note: signin response contains tokens, user details come from fetchUserDetail
       })
       .addCase(signin.rejected, (state, action) => {

@@ -3,6 +3,9 @@
   themes: light --default, dark --prefersdark, cupcake;
 }
 
+/* ✅ Add Google Font import for Manrope */
+/* @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap'); */
+
 /* Apply font family and spacing */
 @layer base {
   html {
@@ -28,4 +31,9 @@
   li {
     line-height: 1.7 !important; /* More spacing for paragraphs */
   }
+}
+
+/* ✅ Add a utility class for font usage */
+.font-manrope {
+  font-family: 'Manrope', sans-serif;
 }

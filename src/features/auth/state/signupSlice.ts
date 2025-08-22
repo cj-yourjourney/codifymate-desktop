@@ -24,7 +24,7 @@ export interface RegisterResponse {
 }
 
 export interface SignupError {
-  [key: string]: string[] | string
+  [key: string]: string[] | string | undefined
   message?: string
   error?: string
 }
@@ -69,17 +69,19 @@ export const registerUser = createAsyncThunk<
     }
 
     return data
-  } catch (error: any) {
-    // Handle different error response formats
+  } catch (error: unknown) {
     let formattedError: SignupError = {}
 
-    if (error.message) {
-      formattedError.message = error.message
-    } else if (error.error) {
-      formattedError.message = error.error
-    } else if (typeof error === 'object') {
-      // Handle field-specific errors from Django
-      formattedError = error
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      formattedError.message = (error as { message: string }).message
+    } else if (
+      typeof error === 'object' &&
+      error !== null &&
+      'error' in error
+    ) {
+      formattedError.message = (error as { error: string }).error
+    } else if (typeof error === 'object' && error !== null) {
+      formattedError = error as SignupError
     } else {
       formattedError.message = 'Registration failed. Please try again.'
     }
@@ -140,10 +142,10 @@ const signupSlice = createSlice({
 export const { clearSignupError, clearSignupState, resetSignupForm } =
   signupSlice.actions
 export default signupSlice.reducer
-export type {
-  SignupState,
-  User,
-  RegisterUserData,
-  RegisterResponse,
-  SignupError
-}
+// export type {
+//   SignupState,
+//   User,
+//   RegisterUserData,
+//   RegisterResponse,
+//   SignupError
+// }

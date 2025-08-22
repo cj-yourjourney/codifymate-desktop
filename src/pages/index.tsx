@@ -3,6 +3,9 @@ import Link from 'next/link'
 
 export default function Home() {
   const [appVersion, setAppVersion] = useState<string>('')
+  
+  console.log('API BASE URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
+
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.electronAPI) {

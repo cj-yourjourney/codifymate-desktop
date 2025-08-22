@@ -9,7 +9,6 @@ import {
   Edit3,
   HelpCircle,
   Code,
-  Lightbulb,
   ChevronLeft,
   ChevronRight,
   Check,
@@ -52,8 +51,13 @@ const AICodeAssistant: React.FC = () => {
     useState<ReferenceFileAssessment | null>(null)
   const [isAssessingFiles, setIsAssessingFiles] = useState(false)
 
+  console.log(setReferenceFileAssessment)
+  console.log(isAssessingFiles)
+  console.log(setIsAssessingFiles)
+
+
   // Step 3 state
-  const [refinePromptText, setRefinePromptText] = useState<string>('')
+  // const [refinePromptText, setRefinePromptText] = useState<string>('')
   const [isGeneratingCode, setIsGeneratingCode] = useState(false)
   const [codeGenerationError, setCodeGenerationError] = useState<string>('')
 
@@ -64,9 +68,9 @@ const AICodeAssistant: React.FC = () => {
   ]
 
   const stepIcons = [
-    <Edit3 className="w-5 h-5 text-current" />,
-    <HelpCircle className="w-5 h-5 text-current" />,
-    <Code className="w-5 h-5 text-current" />
+    <Edit3 key="edit" className="w-5 h-5 text-current" />,
+    <HelpCircle key="help" className="w-5 h-5 text-current" />,
+    <Code key="code" className="w-5 h-5 text-current" />
   ]
 
   // Mock assessment data (same as in Step1PromptRefinement)
@@ -136,13 +140,15 @@ const AICodeAssistant: React.FC = () => {
   }
 
   // Handle assessment callback from Step2
-  const handleStep2AssessmentComplete = (assessment: {
-    score: number
-    message: string
-  }) => {
-    setReferenceFileAssessment(assessment)
-    setIsAssessingFiles(false)
-  }
+  // const handleStep2AssessmentComplete = (assessment: {
+  //   score: number
+  //   message: string
+  // }) => {
+  //   setReferenceFileAssessment(assessment)
+  //   setIsAssessingFiles(false)
+  // }
+
+
   const handleGenerateCode = async () => {
     setIsGeneratingCode(true)
     clearStepError(3)
@@ -157,6 +163,7 @@ const AICodeAssistant: React.FC = () => {
         throw new Error(
           'Failed to generate code. Please check your connection and try again.'
         )
+        
       }
 
       setCurrentStep(3)
@@ -232,18 +239,9 @@ const AICodeAssistant: React.FC = () => {
           />
         )
       case 2:
-        return (
-          <Step2PromptClarification
-            onAssessmentComplete={handleStep2AssessmentComplete}
-          />
-        )
+        return <Step2PromptClarification />
       case 3:
-        return (
-          <Step3CodeGeneration
-            refinePrompt={refinePromptText}
-            setRefinePrompt={setRefinePromptText}
-          />
-        )
+        return <Step3CodeGeneration />
       default:
         return null
     }

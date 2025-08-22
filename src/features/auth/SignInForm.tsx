@@ -206,7 +206,7 @@ const SignInForm: React.FC = () => {
 
           <div className="text-center">
             <p className="text-sm">
-              Don't have an account?{' '}
+              Don&apos;t have an account?
               <button
                 onClick={() => router.push('/sign-up')}
                 className="link link-primary"
