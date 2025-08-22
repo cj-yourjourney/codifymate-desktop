@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, cupcake;
+}
+
+/* ✅ Add Google Font import for Manrope */
+/* @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap'); */
+
+/* Apply font family and spacing */
+@layer base {
+  html {
+    font-family: 'Manrope', sans-serif;
+    font-optical-sizing: auto;
+    font-size: 20px;
+    font-weight: 350;
+    letter-spacing: 0.02em; /* Adjust spacing between letters */
+  }
+
+  body {
+    line-height: 1.6; /* Ensures text is readable */
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.3; /* Tighter for headings */
+  }
+
+  p,
+  span,
+  li {
+    line-height: 1.7 !important; /* More spacing for paragraphs */
+  }
+}
+
+/* ✅ Add a utility class for font usage */
+.font-manrope {
+  font-family: 'Manrope', sans-serif;
+}
