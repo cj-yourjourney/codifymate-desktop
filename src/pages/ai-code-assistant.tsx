@@ -309,7 +309,7 @@ const AICodeAssistant: React.FC = () => {
       )}
 
       {/* Header Spacer - same height, empty */}
-      <div className="h-12 bg-base-100" />
+      <div className="h-12 bg-base-200" />
 
       {/* Progress Steps - Fixed height */}
       <div className="flex-shrink-0 bg-base-100/50 backdrop-blur-sm border-b border-base-200 px-6 py-4">

@@ -26,7 +26,7 @@ const Step2PromptClarification: React.FC = () => {
     '/tsconfig.json'
   ]
 
-  // Mock assessment data - randomly choose between low and high score
+  // Mock assessment data
   const mockAssessments: ReferenceFileAssessment[] = [
     {
       score: 5,
@@ -44,10 +44,6 @@ const Step2PromptClarification: React.FC = () => {
         {
           path: '/src/styles/globals.css',
           reason: 'Styling patterns will guide UI component generation'
-        },
-        {
-          path: '/README.md',
-          reason: 'Project documentation provides context about architecture'
         }
       ]
     },
@@ -70,6 +66,9 @@ const Step2PromptClarification: React.FC = () => {
   const [isAssessing, setIsAssessing] = useState(false)
   const [showFileDialog, setShowFileDialog] = useState(false)
   const [customFilePath, setCustomFilePath] = useState('')
+  const [activeTab, setActiveTab] = useState<'suggested' | 'custom'>(
+    'suggested'
+  )
 
   // Handle file selection toggle
   const handleFileToggle = (
@@ -89,11 +88,7 @@ const Step2PromptClarification: React.FC = () => {
   // Handle assessment
   const handleAssessment = async () => {
     setIsAssessing(true)
-
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Randomly select assessment (weighted towards improvement for demo)
     const selectedAssessment =
       Math.random() > 0.3 ? mockAssessments[0] : mockAssessments[1]
     setAssessment(selectedAssessment)
@@ -109,554 +104,395 @@ const Step2PromptClarification: React.FC = () => {
     }
   }
 
-  // Handle removing custom file
-  const handleRemoveCustomFile = (filePath: string) => {
-    setSelectedFiles((prev) => prev.filter((f) => f.path !== filePath))
-  }
-
   const selectedAIFiles = selectedFiles.filter((f) => f.isAISuggested)
   const selectedCustomFiles = selectedFiles.filter((f) => !f.isAISuggested)
   const totalSelected = selectedFiles.length
 
-  return (
-    <div className="h-full p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-base-content">
-              Select Reference Files
-            </h2>
-            <p className="text-base-content/60">
-              Choose files that provide context for better AI code generation
-            </p>
-          </div>
-          <div className="badge badge-primary badge-lg">
-            {totalSelected} files selected
-          </div>
-        </div>
+  const getFileIcon = (filePath: string) => {
+    const ext = filePath.split('.').pop()?.toLowerCase()
+    switch (ext) {
+      case 'tsx':
+      case 'ts':
+        return '🔷'
+      case 'json':
+        return '📋'
+      case 'css':
+        return '🎨'
+      case 'md':
+        return '📝'
+      default:
+        return '📄'
+    }
+  }
 
-        {/* Assessment Section */}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
+      <div className="max-w-6xl mx-auto">
+       
+
+        {/* Assessment Result */}
         {assessment && (
           <div
-            className={`alert ${
-              assessment.score >= 7 ? 'alert-success' : 'alert-warning'
-            } shadow-lg mb-4`}
+            className={`rounded-xl p-6 mb-8 border-l-4 ${
+              assessment.score >= 7
+                ? 'bg-green-50 border-green-400'
+                : 'bg-amber-50 border-amber-400'
+            }`}
           >
-            <div className="flex items-start w-full">
-              <div className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
-                    assessment.score >= 7
-                      ? 'bg-success text-success-content'
-                      : 'bg-warning text-warning-content'
-                  }`}
-                >
-                  {assessment.score}
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold mb-1">
-                    Reference File Assessment
-                  </div>
-                  <div className="text-sm opacity-90">{assessment.message}</div>
-                </div>
+            <div className="flex items-start">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-4 ${
+                  assessment.score >= 7 ? 'bg-green-500' : 'bg-amber-500'
+                }`}
+              >
+                {assessment.score}
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  Assessment Complete
+                </h3>
+                <p className="text-gray-700">{assessment.message}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Suggested improvements for low score */}
-        {assessment &&
-          assessment.score < 7 &&
-          assessment.suggestedFiles &&
-          assessment.suggestedFiles.length > 0 && (
-            <div className="card bg-base-100 shadow-lg border border-warning/30 mb-4">
-              <div className="card-body p-4">
-                <h4 className="font-semibold text-warning mb-3 flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.75 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
-                  Recommended Additional Files
-                </h4>
-                <div className="space-y-2">
-                  {assessment.suggestedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start justify-between p-3 bg-warning/5 rounded-lg border border-warning/20"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-mono text-sm text-base-content break-all">
-                          {file.path}
-                        </div>
-                        <div className="text-xs text-base-content/60 mt-1">
-                          {file.reason}
-                        </div>
-                      </div>
-                      <button
-                        className="btn btn-outline btn-warning btn-xs ml-3"
-                        onClick={() => handleFileToggle(file.path, false)}
-                        disabled={selectedFiles.some(
-                          (f) => f.path === file.path
-                        )}
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* File Selection Panel */}
+          <div className="lg:col-span-2">
+            {/* Improvement Suggestions */}
+            {assessment &&
+              assessment.score < 7 &&
+              assessment.suggestedFiles &&
+              assessment.suggestedFiles.length > 0 && (
+                <div className="mt-6 bg-amber-50 rounded-xl p-6 border border-amber-200">
+                  <h3 className="flex items-center font-semibold text-amber-800 mb-4">
+                    💡 Recommended Files to Add
+                  </h3>
+                  <div className="space-y-3">
+                    {assessment.suggestedFiles.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-200"
                       >
-                        {selectedFiles.some((f) => f.path === file.path)
-                          ? 'Added'
-                          : 'Add'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-      </div>
-
-      {/* Main Content - Left/Right Panels */}
-      <div className="grid lg:grid-cols-2 gap-6 h-full">
-        {/* Left Panel - File Selection */}
-        <div className="space-y-6">
-          {/* AI Suggested Files */}
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-primary flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                    />
-                  </svg>
-                  AI Suggested Files
-                </h3>
-                <div className="badge badge-outline">
-                  {selectedAIFiles.length} of {aiSuggestedFiles.length}
-                </div>
-              </div>
-
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {aiSuggestedFiles.map((filePath, index) => {
-                  const isSelected = selectedFiles.some(
-                    (f) => f.path === filePath
-                  )
-                  return (
-                    <div
-                      key={index}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-primary/30 bg-primary/5'
-                          : 'border-base-300 hover:border-primary/20 hover:bg-base-50'
-                      }`}
-                      onClick={() => handleFileToggle(filePath, true)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center flex-1 min-w-0">
-                          <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
-                            <svg
-                              className="w-4 h-4 text-primary"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-mono text-sm text-base-content break-all">
-                              {filePath}
-                            </div>
-                            <div className="text-xs text-base-content/50">
-                              {filePath.split('/').pop()}
-                            </div>
-                          </div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleFileToggle(filePath, true)}
-                          className="checkbox checkbox-primary checkbox-sm"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Manually Added Files */}
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-secondary flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  Additional Files
-                </h3>
-                <button
-                  className="btn btn-outline btn-secondary btn-sm"
-                  onClick={() => setShowFileDialog(true)}
-                >
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                  Add File
-                </button>
-              </div>
-
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {selectedCustomFiles.length > 0 ? (
-                  selectedCustomFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="p-3 rounded-lg border border-secondary/30 bg-secondary/5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center flex-1 min-w-0">
-                          <div className="w-8 h-8 bg-secondary/10 rounded-md flex items-center justify-center mr-3">
-                            <svg
-                              className="w-4 h-4 text-secondary"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-mono text-sm text-base-content break-all">
+                        <div className="flex items-center">
+                          <span className="text-xl mr-3">
+                            {getFileIcon(file.path)}
+                          </span>
+                          <div>
+                            <div className="font-mono text-sm font-medium">
                               {file.path}
                             </div>
-                            <div className="text-xs text-base-content/50">
-                              Manually added
+                            <div className="text-xs text-gray-600">
+                              {file.reason}
                             </div>
                           </div>
                         </div>
                         <button
-                          className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                          onClick={() => handleRemoveCustomFile(file.path)}
+                          onClick={() => handleFileToggle(file.path, false)}
+                          disabled={selectedFiles.some(
+                            (f) => f.path === file.path
+                          )}
+                          className={`px-3 py-1 rounded text-sm font-medium ${
+                            selectedFiles.some((f) => f.path === file.path)
+                              ? 'bg-gray-200 text-gray-500'
+                              : 'bg-amber-600 text-white hover:bg-amber-700'
+                          }`}
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                          {selectedFiles.some((f) => f.path === file.path)
+                            ? 'Added'
+                            : 'Add'}
                         </button>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
+                </div>
+              )}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              {/* Tab Navigation */}
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex">
+                  <button
+                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'suggested'
+                        ? 'border-blue-500 text-blue-600 bg-blue-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                    onClick={() => setActiveTab('suggested')}
+                  >
+                    <span className="flex items-center">
+                      🤖 AI Suggested ({aiSuggestedFiles.length})
+                    </span>
+                  </button>
+                  <button
+                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'custom'
+                        ? 'border-blue-500 text-blue-600 bg-blue-50'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                    onClick={() => setActiveTab('custom')}
+                  >
+                    <span className="flex items-center">
+                      👤 Custom Files ({selectedCustomFiles.length})
+                    </span>
+                  </button>
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === 'suggested' ? (
+                  <div className="space-y-3">
+                    {aiSuggestedFiles.map((filePath, index) => {
+                      const isSelected = selectedFiles.some(
+                        (f) => f.path === filePath
+                      )
+                      return (
+                        <div
+                          key={index}
+                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                            isSelected
+                              ? 'border-blue-300 bg-blue-50 shadow-sm'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => handleFileToggle(filePath, true)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <span className="text-2xl mr-3">
+                                {getFileIcon(filePath)}
+                              </span>
+                              <div>
+                                <div className="font-mono text-sm font-medium text-gray-900">
+                                  {filePath.split('/').pop()}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {filePath}
+                                </div>
+                              </div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleFileToggle(filePath, true)}
+                              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 ) : (
-                  <div className="text-center py-8 text-base-content/60">
-                    <div className="w-12 h-12 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-medium text-gray-900">
+                        Your Custom Files
+                      </h3>
+                      <button
+                        onClick={() => setShowFileDialog(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
+                        + Add File
+                      </button>
                     </div>
-                    <p className="text-sm mb-2">No additional files added</p>
-                    <p className="text-xs text-base-content/40">
-                      Add files not suggested by AI
-                    </p>
+
+                    {selectedCustomFiles.length > 0 ? (
+                      selectedCustomFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="p-4 rounded-lg border-2 border-blue-300 bg-blue-50"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <span className="text-2xl mr-3">
+                                {getFileIcon(file.path)}
+                              </span>
+                              <div>
+                                <div className="font-mono text-sm font-medium text-gray-900">
+                                  {file.path.split('/').pop()}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {file.path}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                setSelectedFiles((prev) =>
+                                  prev.filter((f) => f.path !== file.path)
+                                )
+                              }
+                              className="text-red-500 hover:text-red-700 p-1"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="text-6xl mb-4">📁</div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No custom files added
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          Add your own reference files to provide additional
+                          context
+                        </p>
+                        <button
+                          onClick={() => setShowFileDialog(true)}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                        >
+                          Add Your First File
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Panel - Assessment & Actions */}
-        <div className="space-y-6">
-          {/* Assessment Action */}
-          <div className="card bg-gradient-to-r from-primary/5 to-primary/10 shadow-lg border border-primary/20">
-            <div className="card-body p-6 text-center">
-              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-primary"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                  />
-                </svg>
-              </div>
-
-              <h3 className="text-lg font-semibold text-base-content mb-2">
-                Reference File Assessment
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Summary Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Selection Summary
               </h3>
 
-              <p className="text-base-content/60 mb-6">
-                Get AI feedback on your file selection to ensure optimal code
-                generation
-              </p>
-
-              <button
-                className={`btn w-full ${
-                  !assessment || assessment.score < 7
-                    ? 'btn-primary'
-                    : 'btn-success'
-                } ${isAssessing ? 'loading' : ''}`}
-                onClick={handleAssessment}
-                disabled={isAssessing || totalSelected === 0}
-              >
-                {isAssessing ? (
-                  <span className="loading loading-spinner loading-sm mr-2"></span>
-                ) : (
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                )}
-                {!assessment || assessment.score < 7
-                  ? 'Assess Reference Files'
-                  : 'Generate Code'}
-              </button>
-
-              {totalSelected === 0 && (
-                <p className="text-warning text-xs mt-2">
-                  Please select at least one file to assess
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* File Summary */}
-          <div className="card bg-base-100 shadow-lg border border-base-200">
-            <div className="card-body p-4">
-              <h4 className="font-semibold text-base-content mb-4">
-                Selection Summary
-              </h4>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
-                  <div className="flex items-center">
-                    <svg
-                      className="w-4 h-4 text-primary mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                      />
-                    </svg>
-                    <span className="text-sm">AI Suggested</span>
-                  </div>
-                  <span className="badge badge-primary">
-                    {selectedAIFiles.length}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center p-3 bg-secondary/5 rounded-lg">
-                  <div className="flex items-center">
-                    <svg
-                      className="w-4 h-4 text-secondary mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    <span className="text-sm">Manually Added</span>
-                  </div>
-                  <span className="badge badge-secondary">
-                    {selectedCustomFiles.length}
-                  </span>
-                </div>
-
-                <div className="divider my-2"></div>
-
-                <div className="flex justify-between items-center p-3 bg-accent/5 rounded-lg border border-accent/20">
-                  <div className="flex items-center">
-                    <svg
-                      className="w-4 h-4 text-accent mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                    <span className="text-sm font-semibold">Total Files</span>
-                  </div>
-                  <span className="badge badge-accent badge-lg">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Total Files</span>
+                  <span className="text-2xl font-bold text-blue-600">
                     {totalSelected}
                   </span>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Assessment Results Details */}
-          {assessment && assessment.score >= 7 && (
-            <div className="card bg-success/5 shadow-lg border border-success/30">
-              <div className="card-body p-4">
-                <h4 className="font-semibold text-success mb-3 flex items-center">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Great File Selection!
-                </h4>
-                <div className="text-sm text-success/80 space-y-2">
-                  <p>
-                    Your selected files provide comprehensive context including:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li>Component structure and patterns</li>
-                    <li>Type definitions and interfaces</li>
-                    <li>Project configuration and dependencies</li>
-                    <li>Utility functions and hooks</li>
-                  </ul>
-                  <p className="font-medium mt-3">
-                    Ready to generate high-quality code!
-                  </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">🤖 AI Suggested</span>
+                    <span className="font-medium">
+                      {selectedAIFiles.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">👤 Custom Files</span>
+                    <span className="font-medium">
+                      {selectedCustomFiles.length}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+
+            {/* Assessment Action */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
+              <div className="text-center">
+                <div className="text-4xl mb-3">🎯</div>
+                <h3 className="text-lg font-semibold mb-2">Ready to Assess?</h3>
+                <p className="text-sm opacity-90 mb-6">
+                  Get AI feedback on your file selection to ensure optimal code
+                  generation
+                </p>
+
+                <button
+                  onClick={handleAssessment}
+                  disabled={isAssessing || totalSelected === 0}
+                  className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
+                    isAssessing
+                      ? 'bg-white/20 cursor-not-allowed'
+                      : totalSelected === 0
+                      ? 'bg-white/20 cursor-not-allowed'
+                      : 'bg-white text-blue-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {isAssessing ? (
+                    <span className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Assessing...
+                    </span>
+                  ) : assessment && assessment.score >= 7 ? (
+                    '✨ Generate Code'
+                  ) : (
+                    '🔍 Assess Files'
+                  )}
+                </button>
+
+                {totalSelected === 0 && (
+                  <p className="text-xs opacity-75 mt-2">
+                    Select at least one file to continue
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Success Message */}
+            {assessment && assessment.score >= 7 && (
+              <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">🎉</div>
+                  <h3 className="font-semibold text-green-800 mb-2">
+                    Excellent Selection!
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    Your files provide comprehensive context for high-quality
+                    code generation.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Add File Dialog */}
       {showFileDialog && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">Add Reference File</h3>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">File Path</span>
-              </label>
-              <input
-                type="text"
-                placeholder="/src/components/MyComponent.tsx"
-                className="input input-bordered w-full"
-                value={customFilePath}
-                onChange={(e) => setCustomFilePath(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddCustomFile()}
-              />
-              <label className="label">
-                <span className="label-text-alt">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Add Reference File</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  File Path
+                </label>
+                <input
+                  type="text"
+                  placeholder="/src/components/MyComponent.tsx"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={customFilePath}
+                  onChange={(e) => setCustomFilePath(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCustomFile()}
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 mt-1">
                   Enter the absolute path to your file
-                </span>
-              </label>
-            </div>
-            <div className="modal-action">
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setShowFileDialog(false)
-                  setCustomFilePath('')
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleAddCustomFile}
-                disabled={!customFilePath.trim()}
-              >
-                Add File
-              </button>
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowFileDialog(false)
+                    setCustomFilePath('')
+                  }}
+                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddCustomFile}
+                  disabled={!customFilePath.trim()}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    customFilePath.trim()
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Add File
+                </button>
+              </div>
             </div>
           </div>
         </div>
