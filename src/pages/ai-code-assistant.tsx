@@ -26,6 +26,16 @@ import {
   Loader2
 } from 'lucide-react'
 
+// Mock assessment interface to match Step1PromptRefinement
+interface Assessment {
+  score: number
+  type: 'improvement' | 'excellent'
+  content: {
+    title: string
+    items: string[]
+  }
+}
+
 const AICodeAssistant: React.FC = () => {
   const dispatch = useAppDispatch()
 
@@ -58,6 +68,15 @@ const AICodeAssistant: React.FC = () => {
   const [refinePromptText, setRefinePromptText] = useState<string>('')
   const [stepErrors, setStepErrors] = useState<{ [key: number]: string }>({})
 
+  // Add local state for user prompt since we removed Redux from Step1
+  const [localUserPrompt, setLocalUserPrompt] = useState<string>('')
+
+  // New state for prompt assessment
+  const [promptAssessment, setPromptAssessment] = useState<Assessment | null>(
+    null
+  )
+  const [isAssessing, setIsAssessing] = useState(false)
+
   const stepTitles = [
     'Write Prompt',
     'Add Details & Files',
@@ -68,6 +87,34 @@ const AICodeAssistant: React.FC = () => {
     <Edit3 className="w-5 h-5 text-current" />,
     <HelpCircle className="w-5 h-5 text-current" />,
     <Code className="w-5 h-5 text-current" />
+  ]
+
+  // Mock assessment data (same as in Step1PromptRefinement)
+  const mockAssessments: Assessment[] = [
+    {
+      score: 4,
+      type: 'improvement',
+      content: {
+        title: 'Your prompt needs more detail',
+        items: [
+          'What specific features or functionality should be included?',
+          'What technology stack or framework should be used?',
+          'Are there any design preferences or constraints to consider?'
+        ]
+      }
+    },
+    {
+      score: 9,
+      type: 'excellent',
+      content: {
+        title: "Excellent prompt! Here's why:",
+        items: [
+          'Clear and specific requirements with detailed functionality description',
+          'Includes technical specifications and implementation preferences',
+          'Provides context about integration needs and existing system constraints'
+        ]
+      }
+    }
   ]
 
   // Clear step error when moving to different step
@@ -95,36 +142,31 @@ const AICodeAssistant: React.FC = () => {
     setStepErrors((prev) => ({ ...prev, [step]: '' }))
   }
 
+  // Handle prompt assessment
+  const handleAssessPrompt = async () => {
+    if (!localUserPrompt.trim()) {
+      setStepError(1, 'Please enter a prompt first.')
+      return
+    }
+
+    setIsAssessing(true)
+    clearStepError(1)
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    // Randomly select one of the mock assessments
+    const randomAssessment =
+      mockAssessments[Math.floor(Math.random() * mockAssessments.length)]
+    setPromptAssessment(randomAssessment)
+    setIsAssessing(false)
+  }
+
   const handleNextStep = async () => {
     // Clear any existing errors for current step
     clearStepError(currentStep)
 
-    if (currentStep === 1) {
-      if (userPrompt && projectFilePaths.length > 0) {
-        try {
-          await dispatch(
-            refinePrompt({
-              user_prompts: userPrompt,
-              project_file_paths: projectFilePaths
-            })
-          ).unwrap()
-          setCurrentStep(2)
-        } catch (error) {
-          setStepError(
-            1,
-            error instanceof Error
-              ? error.message
-              : 'Failed to analyze project and generate questions'
-          )
-        }
-      } else {
-        const missingItems = []
-        if (!userPrompt) missingItems.push('prompt')
-        if (projectFilePaths.length === 0) missingItems.push('project folder')
-
-        setStepError(1, `Please enter a ${missingItems.join(' and ')} first.`)
-      }
-    } else if (currentStep === 2) {
+    if (currentStep === 2) {
       // Prepare default values to ensure generateCode always triggers
       const defaultProjectStructure = projectStructure || {
         type: 'unknown',
@@ -149,7 +191,7 @@ const AICodeAssistant: React.FC = () => {
       try {
         await dispatch(
           generateCode({
-            userPrompt: userPrompt || 'Generate basic code structure',
+            userPrompt: localUserPrompt || 'Generate basic code structure',
             clarifyingQuestionsWithAnswers: defaultClarifyingQuestions,
             selectedRelevantFiles,
             manuallyAddedFiles,
@@ -195,7 +237,11 @@ const AICodeAssistant: React.FC = () => {
       case 1:
         return true
       case 2:
-        return userPrompt.trim() !== '' && projectFilePaths.length > 0
+        return (
+          localUserPrompt.trim() !== '' &&
+          promptAssessment !== null &&
+          promptAssessment.score >= 7
+        )
       case 3:
         return (
           clarifyingQuestionsWithAnswers.length > 0 &&
@@ -209,7 +255,16 @@ const AICodeAssistant: React.FC = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return <Step1PromptRefinement />
+        return (
+          <Step1PromptRefinement
+            userPrompt={localUserPrompt}
+            setUserPrompt={setLocalUserPrompt}
+            assessment={promptAssessment}
+            isAssessing={isAssessing}
+            onAssessPrompt={handleAssessPrompt}
+            onNavigateToStep2={() => setCurrentStep(2)}
+          />
+        )
       case 2:
         return <Step2PromptClarification />
       case 3:
@@ -227,7 +282,12 @@ const AICodeAssistant: React.FC = () => {
   const getStepButtonText = () => {
     switch (currentStep) {
       case 1:
-        return 'Refine Prompt & Context Files'
+        if (!promptAssessment) {
+          return 'Assess Your Prompt'
+        }
+        return promptAssessment.score < 7
+          ? 'Assess Your Prompt'
+          : 'Select Reference Files'
       case 2:
         return 'Generate Code'
       case 3:
@@ -238,13 +298,19 @@ const AICodeAssistant: React.FC = () => {
   }
 
   const isNextButtonDisabled = () => {
-    const loading = clarificationLoading || codeGenerationLoading || refining
+    const loading =
+      clarificationLoading || codeGenerationLoading || refining || isAssessing
 
     if (loading) return true
 
     switch (currentStep) {
       case 1:
-        return !userPrompt.trim() || projectFilePaths.length === 0
+        if (!promptAssessment) {
+          return !userPrompt.trim() || isAssessing
+        }
+        // For step 1, button is never disabled once we have assessment
+        // The button text and action changes based on score
+        return false
       case 2:
         // Always allow proceeding from step 2 to force generateCode to trigger
         return false
@@ -257,8 +323,9 @@ const AICodeAssistant: React.FC = () => {
   }
 
   const shouldShowNextButton = () => {
-    // Hide the main next button on step 3 since refinement is handled within the component
-    return currentStep < 3
+    // Only show the main next button for step 2 and hide for steps 1 and 3
+    // Step 1 uses its own assessment button, Step 3 handles refinement internally
+    return currentStep === 2
   }
 
   const renderStepError = (step: number) => {
@@ -284,11 +351,12 @@ const AICodeAssistant: React.FC = () => {
   }
 
   const getLoadingConfig = () => {
-    if (currentStep === 1 && clarificationLoading) {
+    if (currentStep === 1 && (clarificationLoading || isAssessing)) {
       return {
-        title: 'Analyzing Your Project',
-        message:
-          'AI is analyzing your project structure and generating clarifying questions...'
+        title: isAssessing ? 'Assessing Your Prompt' : 'Analyzing Your Project',
+        message: isAssessing
+          ? 'AI is analyzing your prompt quality and providing feedback...'
+          : 'AI is analyzing your project structure and generating clarifying questions...'
       }
     } else if (currentStep === 2 && codeGenerationLoading) {
       return {
@@ -301,12 +369,25 @@ const AICodeAssistant: React.FC = () => {
 
   const loadingConfig = getLoadingConfig()
 
+  // Handle the step 1 button click
+  const handleStep1ButtonClick = async () => {
+    if (!promptAssessment) {
+      handleAssessPrompt()
+    } else if (promptAssessment.score >= 7) {
+      // Navigate directly to Step 2 for reference file selection
+      clearStepError(1)
+      setCurrentStep(2)
+    } else {
+      handleAssessPrompt()
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-base-200 to-base-300">
       {/* Loading Modal */}
       {loadingConfig && (
         <LoadingModal
-          isOpen={clarificationLoading || codeGenerationLoading}
+          isOpen={clarificationLoading || codeGenerationLoading || isAssessing}
           title={loadingConfig.title}
           message={loadingConfig.message}
         />
@@ -431,7 +512,7 @@ const AICodeAssistant: React.FC = () => {
                 </div>
                 <p className="text-sm text-base-content/60">
                   {currentStep === 1 &&
-                    'Write your prompt and select the project folder to work on'}
+                    'Write your prompt and get AI assessment for quality feedback'}
                   {currentStep === 2 &&
                     'Share more details and select reference files for better code generation'}
                   {currentStep === 3 &&
@@ -484,7 +565,8 @@ const AICodeAssistant: React.FC = () => {
                 currentStep === 1 ||
                 clarificationLoading ||
                 codeGenerationLoading ||
-                refining
+                refining ||
+                isAssessing
               }
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
@@ -508,18 +590,21 @@ const AICodeAssistant: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    {getStepButtonText()}
+                    Generate Code
                     <ChevronRight className="w-4 h-4 ml-2" />
                   </>
                 )}
               </button>
-            ) : (
+            ) : currentStep === 3 ? (
               <div className="flex items-center text-primary">
                 <CheckCircle className="w-5 h-5 mr-2" />
                 <span className="text-sm font-medium">
                   Code generation complete!
                 </span>
               </div>
+            ) : (
+              // For step 1, show nothing in the footer since assessment is handled in the component
+              <div></div>
             )}
           </div>
         </div>

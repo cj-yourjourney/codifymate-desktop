@@ -23,7 +23,13 @@ const Navbar: React.FC = () => {
         </a>
       </div>
       <div className="navbar-center">
-        {/* Add navigation items here if needed */}
+        {user && (
+          <div className="flex items-center gap-1 bg-primary/10 px-4 py-2 rounded-full">
+            <span className="text-primary font-semibold">
+              {user.credits} Credits
+            </span>
+          </div>
+        )}
       </div>
       <div className="navbar-end">
         {loading ? (
@@ -36,37 +42,27 @@ const Navbar: React.FC = () => {
             <span className="text-error text-sm">Auth Error</span>
           </div>
         ) : user ? (
-          <div className="dropdown dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
-              className="btn btn-ghost btn-circle avatar"
-            >
-              <div className="w-10 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-content font-semibold text-sm">
-                  {user.username.charAt(0).toUpperCase()}
-                </span>
+          <div className="flex items-center gap-3">
+            {/* Username dropdown */}
+            <div className="dropdown dropdown-end">
+              <div
+                tabIndex={0}
+                role="button"
+                className="text-sm font-medium text-primary underline hover:text-primary/80 cursor-pointer transition-colors duration-200"
+              >
+                {user.username}
               </div>
+              <ul
+                tabIndex={0}
+                className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-40"
+              >
+                <li>
+                  <a onClick={handleLogout} className="text-error">
+                    Logout
+                  </a>
+                </li>
+              </ul>
             </div>
-            <ul
-              tabIndex={0}
-              className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
-            >
-              <li>
-                <div className="justify-between">
-                  <span className="font-semibold">{user.username}</span>
-                </div>
-              </li>
-              <li>
-                <a className="text-sm text-base-content/70">{user.email}</a>
-              </li>
-              <div className="divider my-1"></div>
-              <li>
-                <a onClick={handleLogout} className="text-error">
-                  Logout
-                </a>
-              </li>
-            </ul>
           </div>
         ) : (
           <div className="flex items-center gap-2">
