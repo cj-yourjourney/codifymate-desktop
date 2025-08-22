@@ -33,13 +33,18 @@ jobs:
 
       - name: Build and publish (macOS)
         if: matrix.os == 'macos-latest'
-        run: npm run publish
+        run: |
+          NODE_ENV=production npm run build
+          npx electron-builder --publish=always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Build and publish (Windows)
         if: matrix.os == 'windows-latest'
-        run: npm run publish
+        run: |
+          set NODE_ENV=production
+          npm run build
+          npx electron-builder --publish=always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
