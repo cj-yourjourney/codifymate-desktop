@@ -1,10 +1,4 @@
 import React, { useState } from 'react'
-import { useAppSelector, useAppDispatch } from '@/shared/store/hook'
-import { refinePrompt } from '@/features/aiCodeAssistant/promptClarification/state/promptClarificationSlice'
-import {
-  generateCode,
-  clearError
-} from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 import {
   Step1PromptRefinement,
   Step2PromptClarification,
@@ -36,46 +30,32 @@ interface Assessment {
   }
 }
 
+// Mock reference file assessment interface for Step2
+interface ReferenceFileAssessment {
+  score: number
+  message: string
+}
+
 const AICodeAssistant: React.FC = () => {
-  const dispatch = useAppDispatch()
-
-  const promptRefinementState = useAppSelector(
-    (state) => state.promptRefinement
-  )
-  const promptClarificationState = useAppSelector(
-    (state) => state.promptClarification
-  )
-  const codeGenerationState = useAppSelector((state) => state.codeGeneration)
-
-  const { userPrompt, projectFilePaths } = promptRefinementState
-  const {
-    clarifyingQuestionsWithAnswers,
-    additionalNotes,
-    manuallyAddedFiles,
-    selectedRelevantFiles,
-    projectStructure,
-    loading: clarificationLoading
-  } = promptClarificationState
-
-  const {
-    currentVersion,
-    loading: codeGenerationLoading,
-    refining,
-    error: codeGenerationError
-  } = codeGenerationState
-
   const [currentStep, setCurrentStep] = useState<number>(1)
-  const [refinePromptText, setRefinePromptText] = useState<string>('')
   const [stepErrors, setStepErrors] = useState<{ [key: number]: string }>({})
 
-  // Add local state for user prompt since we removed Redux from Step1
+  // Step 1 state
   const [localUserPrompt, setLocalUserPrompt] = useState<string>('')
-
-  // New state for prompt assessment
   const [promptAssessment, setPromptAssessment] = useState<Assessment | null>(
     null
   )
   const [isAssessing, setIsAssessing] = useState(false)
+
+  // Step 2 state
+  const [referenceFileAssessment, setReferenceFileAssessment] =
+    useState<ReferenceFileAssessment | null>(null)
+  const [isAssessingFiles, setIsAssessingFiles] = useState(false)
+
+  // Step 3 state
+  const [refinePromptText, setRefinePromptText] = useState<string>('')
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false)
+  const [codeGenerationError, setCodeGenerationError] = useState<string>('')
 
   const stepTitles = [
     'Write Prompt',
@@ -127,13 +107,6 @@ const AICodeAssistant: React.FC = () => {
     }
   }, [stepErrors, currentStep])
 
-  // Clear code generation error when component mounts
-  React.useEffect(() => {
-    if (codeGenerationError) {
-      dispatch(clearError())
-    }
-  }, [])
-
   const setStepError = (step: number, error: string) => {
     setStepErrors((prev) => ({ ...prev, [step]: error }))
   }
@@ -142,7 +115,7 @@ const AICodeAssistant: React.FC = () => {
     setStepErrors((prev) => ({ ...prev, [step]: '' }))
   }
 
-  // Handle prompt assessment
+  // Handle prompt assessment for Step 1
   const handleAssessPrompt = async () => {
     if (!localUserPrompt.trim()) {
       setStepError(1, 'Please enter a prompt first.')
@@ -162,56 +135,50 @@ const AICodeAssistant: React.FC = () => {
     setIsAssessing(false)
   }
 
+  // Handle assessment callback from Step2
+  const handleStep2AssessmentComplete = (assessment: {
+    score: number
+    message: string
+  }) => {
+    setReferenceFileAssessment(assessment)
+    setIsAssessingFiles(false)
+  }
+  const handleGenerateCode = async () => {
+    setIsGeneratingCode(true)
+    clearStepError(3)
+    setCodeGenerationError('')
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Simulate occasional errors for demo
+      if (Math.random() < 0.1) {
+        throw new Error(
+          'Failed to generate code. Please check your connection and try again.'
+        )
+      }
+
+      setCurrentStep(3)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate code. Please try again.'
+
+      setCodeGenerationError(errorMessage)
+      setStepError(2, errorMessage)
+    } finally {
+      setIsGeneratingCode(false)
+    }
+  }
+
   const handleNextStep = async () => {
     // Clear any existing errors for current step
     clearStepError(currentStep)
 
     if (currentStep === 2) {
-      // Prepare default values to ensure generateCode always triggers
-      const defaultProjectStructure = projectStructure || {
-        type: 'unknown',
-        root: '.',
-        structure: {
-          root_files: []
-        },
-        conventions: {},
-        framework: {}
-      }
-
-      const defaultClarifyingQuestions =
-        clarifyingQuestionsWithAnswers.length > 0
-          ? clarifyingQuestionsWithAnswers
-          : [
-              {
-                question: 'No questions available',
-                answer: 'No answer provided'
-              }
-            ]
-
-      try {
-        await dispatch(
-          generateCode({
-            userPrompt: localUserPrompt || 'Generate basic code structure',
-            clarifyingQuestionsWithAnswers: defaultClarifyingQuestions,
-            selectedRelevantFiles,
-            manuallyAddedFiles,
-            additionalNotes: additionalNotes || 'No additional notes provided',
-            projectStructure: defaultProjectStructure
-          })
-        ).unwrap()
-
-        setCurrentStep(3)
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Failed to generate code. Please check your connection and try again.'
-
-        setStepError(2, errorMessage)
-      }
-    } else if (currentStep === 3) {
-      // For step 3, we don't need to handle refinement here anymore
-      // Refinement is now handled directly in the Step3CodeGeneration component
+      await handleGenerateCode()
     }
   }
 
@@ -244,8 +211,7 @@ const AICodeAssistant: React.FC = () => {
         )
       case 3:
         return (
-          clarifyingQuestionsWithAnswers.length > 0 &&
-          clarifyingQuestionsWithAnswers.every((qa) => qa.answer.trim() !== '')
+          referenceFileAssessment !== null && referenceFileAssessment.score >= 7
         )
       default:
         return false
@@ -266,7 +232,11 @@ const AICodeAssistant: React.FC = () => {
           />
         )
       case 2:
-        return <Step2PromptClarification />
+        return (
+          <Step2PromptClarification
+            onAssessmentComplete={handleStep2AssessmentComplete}
+          />
+        )
       case 3:
         return (
           <Step3CodeGeneration
@@ -279,53 +249,13 @@ const AICodeAssistant: React.FC = () => {
     }
   }
 
-  const getStepButtonText = () => {
-    switch (currentStep) {
-      case 1:
-        if (!promptAssessment) {
-          return 'Assess Your Prompt'
-        }
-        return promptAssessment.score < 7
-          ? 'Assess Your Prompt'
-          : 'Select Reference Files'
-      case 2:
-        return 'Generate Code'
-      case 3:
-        return 'Code Generated Successfully'
-      default:
-        return 'Continue'
-    }
-  }
-
-  const isNextButtonDisabled = () => {
-    const loading =
-      clarificationLoading || codeGenerationLoading || refining || isAssessing
-
-    if (loading) return true
-
-    switch (currentStep) {
-      case 1:
-        if (!promptAssessment) {
-          return !userPrompt.trim() || isAssessing
-        }
-        // For step 1, button is never disabled once we have assessment
-        // The button text and action changes based on score
-        return false
-      case 2:
-        // Always allow proceeding from step 2 to force generateCode to trigger
-        return false
-      case 3:
-        // At step 3, we don't need the main next button to do anything
-        return true
-      default:
-        return false
-    }
-  }
-
   const shouldShowNextButton = () => {
-    // Only show the main next button for step 2 and hide for steps 1 and 3
-    // Step 1 uses its own assessment button, Step 3 handles refinement internally
-    return currentStep === 2
+    // Only show the main next button for step 2 when ready to generate code
+    return (
+      currentStep === 2 &&
+      referenceFileAssessment &&
+      referenceFileAssessment.score >= 7
+    )
   }
 
   const renderStepError = (step: number) => {
@@ -351,14 +281,12 @@ const AICodeAssistant: React.FC = () => {
   }
 
   const getLoadingConfig = () => {
-    if (currentStep === 1 && (clarificationLoading || isAssessing)) {
+    if (currentStep === 1 && isAssessing) {
       return {
-        title: isAssessing ? 'Assessing Your Prompt' : 'Analyzing Your Project',
-        message: isAssessing
-          ? 'AI is analyzing your prompt quality and providing feedback...'
-          : 'AI is analyzing your project structure and generating clarifying questions...'
+        title: 'Assessing Your Prompt',
+        message: 'AI is analyzing your prompt quality and providing feedback...'
       }
-    } else if (currentStep === 2 && codeGenerationLoading) {
+    } else if (currentStep === 2 && isGeneratingCode) {
       return {
         title: 'Generating Code',
         message: 'AI is creating optimized code based on your requirements...'
@@ -369,46 +297,19 @@ const AICodeAssistant: React.FC = () => {
 
   const loadingConfig = getLoadingConfig()
 
-  // Handle the step 1 button click
-  const handleStep1ButtonClick = async () => {
-    if (!promptAssessment) {
-      handleAssessPrompt()
-    } else if (promptAssessment.score >= 7) {
-      // Navigate directly to Step 2 for reference file selection
-      clearStepError(1)
-      setCurrentStep(2)
-    } else {
-      handleAssessPrompt()
-    }
-  }
-
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-base-200 to-base-300">
       {/* Loading Modal */}
       {loadingConfig && (
         <LoadingModal
-          isOpen={clarificationLoading || codeGenerationLoading || isAssessing}
+          isOpen={isAssessing || isGeneratingCode}
           title={loadingConfig.title}
           message={loadingConfig.message}
         />
       )}
 
-      {/* Header - Fixed height */}
-      <div className="flex-shrink-0 bg-base-100/90 backdrop-blur-sm border-b border-base-200 px-6 py-4">
-        <div className="flex items-center justify-center">
-          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mr-4">
-            <Lightbulb className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-base-content">
-              AI Code Assistant
-            </h1>
-            <p className="text-sm text-base-content/70">
-              Transform your ideas into production-ready code
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Header Spacer - same height, empty */}
+      <div className="h-12 bg-base-100" />
 
       {/* Progress Steps - Fixed height */}
       <div className="flex-shrink-0 bg-base-100/50 backdrop-blur-sm border-b border-base-200 px-6 py-4">
@@ -495,53 +396,6 @@ const AICodeAssistant: React.FC = () => {
       {/* Main Content - Flexible height */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Step Header */}
-        <div className="flex-shrink-0 bg-base-100 border-b border-base-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mr-3">
-                {stepIcons[currentStep - 1]}
-              </div>
-              <div>
-                <div className="flex items-center space-x-3 mb-1">
-                  <h2 className="text-xl font-bold text-base-content">
-                    {stepTitles[currentStep - 1]}
-                  </h2>
-                  <div className="badge badge-primary">
-                    Step {currentStep} of {stepTitles.length}
-                  </div>
-                </div>
-                <p className="text-sm text-base-content/60">
-                  {currentStep === 1 &&
-                    'Write your prompt and get AI assessment for quality feedback'}
-                  {currentStep === 2 &&
-                    'Share more details and select reference files for better code generation'}
-                  {currentStep === 3 &&
-                    'Review, copy, and refine your generated code'}
-                </p>
-              </div>
-            </div>
-
-            {/* Step Indicators */}
-            <div className="flex space-x-2">
-              {stepTitles.map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    currentStep === index + 1
-                      ? 'bg-primary scale-125'
-                      : currentStep > index + 1
-                      ? 'bg-primary'
-                      : 'bg-base-300'
-                  }`}
-                  onClick={() => handleStepClick(index + 1)}
-                  disabled={
-                    !canProceedToStep(index + 1) && currentStep <= index + 1
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Step-specific errors */}
         {stepErrors[currentStep] && (
@@ -561,13 +415,7 @@ const AICodeAssistant: React.FC = () => {
             <button
               className="btn btn-outline"
               onClick={handlePrevStep}
-              disabled={
-                currentStep === 1 ||
-                clarificationLoading ||
-                codeGenerationLoading ||
-                refining ||
-                isAssessing
-              }
+              disabled={currentStep === 1 || isAssessing || isGeneratingCode}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
@@ -579,14 +427,12 @@ const AICodeAssistant: React.FC = () => {
                   stepErrors[currentStep] ? 'btn-disabled' : ''
                 }`}
                 onClick={handleNextStep}
-                disabled={isNextButtonDisabled() || !!stepErrors[currentStep]}
+                disabled={!!stepErrors[currentStep]}
               >
-                {clarificationLoading || codeGenerationLoading ? (
+                {isGeneratingCode ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {codeGenerationLoading
-                      ? 'Generating Code...'
-                      : 'Processing...'}
+                    Generating Code...
                   </>
                 ) : (
                   <>
@@ -603,7 +449,6 @@ const AICodeAssistant: React.FC = () => {
                 </span>
               </div>
             ) : (
-              // For step 1, show nothing in the footer since assessment is handled in the component
               <div></div>
             )}
           </div>
@@ -626,7 +471,7 @@ const AICodeAssistant: React.FC = () => {
               </div>
               <button
                 className="btn btn-sm btn-outline"
-                onClick={() => dispatch(clearError())}
+                onClick={() => setCodeGenerationError('')}
               >
                 Dismiss
               </button>
