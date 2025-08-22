@@ -1,12 +1,14 @@
-// main/main.ts (updated with persistent token storage)
 import {
   app,
   BrowserWindow,
   ipcMain,
   protocol,
   dialog,
-  safeStorage
+  safeStorage,
+  Menu,
+  shell
 } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import * as path from 'path'
 import * as fs from 'fs'
 import { isDev } from './util'
@@ -15,9 +17,55 @@ if (require('electron-squirrel-startup')) {
   app.quit()
 }
 
-// Token storage configuration
+// Configure auto-updater
+autoUpdater.checkForUpdatesAndNotify()
+
+// Auto-updater event listeners
+autoUpdater.on('checking-for-update', () => {
+  console.log('Checking for update...')
+})
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info.version)
+})
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('Update not available:', info.version)
+})
+
+autoUpdater.on('error', (err) => {
+  console.log('Error in auto-updater:', err)
+})
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let logMessage = `Download speed: ${progressObj.bytesPerSecond}`
+  logMessage += ` - Downloaded ${progressObj.percent}%`
+  logMessage += ` (${progressObj.transferred}/${progressObj.total})`
+  console.log(logMessage)
+})
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded:', info.version)
+
+  // Show dialog to user
+  dialog
+    .showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: `A new version (${info.version}) has been downloaded. Restart the application to apply the update.`,
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall()
+      }
+    })
+})
+
+// Token storage configuration (keeping your existing code)
 const TOKEN_STORAGE_FILE = path.join(app.getPath('userData'), 'tokens.json')
-const TOKEN_EXPIRY_DAYS = 7 // Keep tokens for 7 days
+const TOKEN_EXPIRY_DAYS = 7
 
 interface StoredToken {
   encryptedData: string
@@ -35,7 +83,6 @@ function loadTokensFromDisk(): TokenStorage {
       const data = fs.readFileSync(TOKEN_STORAGE_FILE, 'utf8')
       const tokens: TokenStorage = JSON.parse(data)
 
-      // Clean up expired tokens
       const now = Date.now()
       const validTokens: TokenStorage = {}
 
@@ -45,7 +92,6 @@ function loadTokensFromDisk(): TokenStorage {
         }
       }
 
-      // Save cleaned tokens back to disk if any were removed
       if (Object.keys(validTokens).length !== Object.keys(tokens).length) {
         saveTokensToDisk(validTokens)
       }
@@ -61,7 +107,6 @@ function loadTokensFromDisk(): TokenStorage {
 // Save tokens to disk
 function saveTokensToDisk(tokens: TokenStorage): void {
   try {
-    // Ensure the directory exists
     const dir = path.dirname(TOKEN_STORAGE_FILE)
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true })
@@ -77,10 +122,9 @@ function saveTokensToDisk(tokens: TokenStorage): void {
   }
 }
 
-// Initialize token storage from disk
 let tokenStore: TokenStorage = loadTokensFromDisk()
 
-// Clean up expired tokens periodically (every hour)
+// Clean up expired tokens periodically
 setInterval(() => {
   const now = Date.now()
   const validTokens: TokenStorage = {}
@@ -99,9 +143,9 @@ setInterval(() => {
     saveTokensToDisk(tokenStore)
     console.log('Cleaned up expired tokens')
   }
-}, 60 * 60 * 1000) // Run every hour
+}, 60 * 60 * 1000)
 
-const createWindow = (): void => {
+const createWindow = (): BrowserWindow => {
   const mainWindow = new BrowserWindow({
     height: 800,
     width: 1200,
@@ -113,6 +157,37 @@ const createWindow = (): void => {
     }
   })
 
+  // Create menu
+  const template = [
+    {
+      label: 'App',
+      submenu: [
+        {
+          label: 'Check for Updates',
+          click: () => {
+            autoUpdater.checkForUpdatesAndNotify()
+          }
+        },
+        {
+          label: 'About',
+          click: () => {
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'About',
+              message: `Your App Name v${app.getVersion()}`,
+              detail: 'Built with Electron, Next.js, and ❤️'
+            })
+          }
+        },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    }
+  ]
+
+  const menu = Menu.buildFromTemplate(template as any)
+  Menu.setApplicationMenu(menu)
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000')
     mainWindow.webContents.openDevTools()
@@ -120,7 +195,14 @@ const createWindow = (): void => {
     const indexPath = path.join(__dirname, '../out/index.html')
     console.log('Loading file from:', indexPath)
     mainWindow.loadFile(indexPath)
+
+    // Check for updates when app starts (only in production)
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify()
+    }, 5000) // Wait 5 seconds after startup
   }
+
+  return mainWindow
 }
 
 app.whenReady().then(() => {
@@ -144,6 +226,17 @@ app.on('window-all-closed', () => {
   }
 })
 
+// IPC Handlers for auto-updater
+ipcMain.handle('check-for-updates', () => {
+  if (!isDev) {
+    autoUpdater.checkForUpdatesAndNotify()
+  }
+})
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion()
+})
+
 // Helper function to recursively get all file paths
 function getAllFilePaths(dirPath: string, fileList: string[] = []): string[] {
   const files = fs.readdirSync(dirPath)
@@ -153,7 +246,6 @@ function getAllFilePaths(dirPath: string, fileList: string[] = []): string[] {
     const stat = fs.statSync(filePath)
 
     if (stat.isDirectory()) {
-      // Skip common directories that shouldn't be included
       if (
         ![
           'node_modules',
@@ -167,7 +259,6 @@ function getAllFilePaths(dirPath: string, fileList: string[] = []): string[] {
         getAllFilePaths(filePath, fileList)
       }
     } else {
-      // Only include relevant file types
       const ext = path.extname(file).toLowerCase()
       const relevantExts = [
         '.js',
@@ -206,11 +297,7 @@ function getAllFilePaths(dirPath: string, fileList: string[] = []): string[] {
   return fileList
 }
 
-// IPC handlers
-ipcMain.handle('get-app-version', () => {
-  return app.getVersion()
-})
-
+// Your existing IPC handlers (keeping all of them)
 ipcMain.handle('select-folder', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory']
@@ -223,7 +310,6 @@ ipcMain.handle('select-folder', async () => {
   return null
 })
 
-// Updated handler for selecting individual files - returns absolute paths
 ipcMain.handle('select-files', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
@@ -263,14 +349,12 @@ ipcMain.handle('select-files', async () => {
   })
 
   if (!result.canceled && result.filePaths.length > 0) {
-    // Return absolute paths
     return result.filePaths.map((filePath) => path.resolve(filePath))
   }
 
   return []
 })
 
-// New handler to read file content
 ipcMain.handle('read-file-content', async (event, filePath: string) => {
   try {
     if (!filePath || !fs.existsSync(filePath)) {
@@ -282,7 +366,6 @@ ipcMain.handle('read-file-content', async (event, filePath: string) => {
       throw new Error('Path is not a file')
     }
 
-    // Check file size to prevent reading very large files
     const maxFileSize = 10 * 1024 * 1024 // 10MB limit
     if (stat.size > maxFileSize) {
       throw new Error('File is too large to read (max 10MB)')
@@ -308,7 +391,6 @@ ipcMain.handle('get-project-files', async (event, folderPath: string) => {
     }
 
     const filePaths = getAllFilePaths(folderPath)
-    // Return absolute paths
     return filePaths.map((filePath) => path.resolve(filePath))
   } catch (error) {
     console.error('Error getting project files:', error)
@@ -316,18 +398,15 @@ ipcMain.handle('get-project-files', async (event, folderPath: string) => {
   }
 })
 
-// Add this IPC handler to main.ts
 ipcMain.handle(
   'write-file',
   async (event, filePath: string, content: string) => {
     try {
-      // Ensure directory exists
       const dir = path.dirname(filePath)
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true })
       }
 
-      // Write the file
       fs.writeFileSync(filePath, content, 'utf8')
       return true
     } catch (error) {
@@ -337,7 +416,7 @@ ipcMain.handle(
   }
 )
 
-// Updated token storage handlers with persistence
+// Token storage handlers (keeping your existing implementation)
 ipcMain.handle('store-token', async (event, key: string, value: string) => {
   try {
     let encryptedData: string
@@ -346,21 +425,17 @@ ipcMain.handle('store-token', async (event, key: string, value: string) => {
       const encrypted = safeStorage.encryptString(value)
       encryptedData = encrypted.toString('base64')
     } else {
-      // Fallback for systems without encryption
       console.warn('Encryption not available, storing token encoded in base64')
       encryptedData = Buffer.from(value, 'utf8').toString('base64')
     }
 
-    // Calculate expiration time (7 days from now)
     const expiresAt = Date.now() + TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
 
-    // Store in memory
     tokenStore[key] = {
       encryptedData,
       expiresAt
     }
 
-    // Persist to disk
     saveTokensToDisk(tokenStore)
 
     console.log(
@@ -373,7 +448,6 @@ ipcMain.handle('store-token', async (event, key: string, value: string) => {
   }
 })
 
-// Handle token retrieval with expiration check
 ipcMain.handle(
   'get-token',
   async (event, key: string): Promise<string | null> => {
@@ -381,7 +455,6 @@ ipcMain.handle(
       const storedToken = tokenStore[key]
       if (!storedToken) return null
 
-      // Check if token has expired
       if (storedToken.expiresAt <= Date.now()) {
         console.log(`Token '${key}' has expired, removing it`)
         delete tokenStore[key]
@@ -389,7 +462,6 @@ ipcMain.handle(
         return null
       }
 
-      // Decrypt the token
       if (safeStorage.isEncryptionAvailable()) {
         const encryptedBuffer = Buffer.from(storedToken.encryptedData, 'base64')
         return safeStorage.decryptString(encryptedBuffer)
@@ -403,7 +475,6 @@ ipcMain.handle(
   }
 )
 
-// Handle token removal
 ipcMain.handle('remove-token', async (event, key: string) => {
   try {
     delete tokenStore[key]
@@ -415,7 +486,6 @@ ipcMain.handle('remove-token', async (event, key: string) => {
   }
 })
 
-// Handle clearing all tokens
 ipcMain.handle('clear-all-tokens', async (event) => {
   try {
     tokenStore = {}
@@ -427,7 +497,6 @@ ipcMain.handle('clear-all-tokens', async (event) => {
   }
 })
 
-// Optional: Add a method to check token expiration without retrieving the token
 ipcMain.handle(
   'is-token-valid',
   async (event, key: string): Promise<boolean> => {
@@ -437,7 +506,6 @@ ipcMain.handle(
 
       const isValid = storedToken.expiresAt > Date.now()
 
-      // Clean up expired token
       if (!isValid) {
         delete tokenStore[key]
         saveTokensToDisk(tokenStore)
@@ -451,7 +519,6 @@ ipcMain.handle(
   }
 )
 
-// Optional: Add a method to extend token expiration
 ipcMain.handle(
   'extend-token-expiry',
   async (event, key: string): Promise<boolean> => {
@@ -459,7 +526,6 @@ ipcMain.handle(
       const storedToken = tokenStore[key]
       if (!storedToken) return false
 
-      // Extend expiration by another 7 days
       storedToken.expiresAt =
         Date.now() + TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
       tokenStore[key] = storedToken

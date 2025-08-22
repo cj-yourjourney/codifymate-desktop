@@ -1,6 +1,5 @@
-// types/electron.d.ts (updated)
 export interface ElectronAPI {
-  // Your existing methods
+  // Existing methods
   getAppVersion: () => Promise<string>
   selectFolder: () => Promise<string | null>
   selectFiles: () => Promise<string[]>
@@ -8,15 +7,16 @@ export interface ElectronAPI {
   readFileContent: (filePath: string) => Promise<string>
   writeFile: (filePath: string, content: string) => Promise<boolean>
 
-  // Updated token storage methods
+  // Token storage methods
   storeToken: (key: string, value: string) => Promise<void>
   getToken: (key: string) => Promise<string | null>
   removeToken: (key: string) => Promise<void>
   clearAllTokens: () => Promise<void>
-
-  // New optional token utility methods
   isTokenValid: (key: string) => Promise<boolean>
   extendTokenExpiry: (key: string) => Promise<boolean>
+
+  // Auto-updater method
+  checkForUpdates: () => Promise<void>
 }
 
 declare global {
