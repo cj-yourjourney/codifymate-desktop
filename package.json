@@ -1,14 +1,8 @@
 {
-  "name": "codifymate",
+  "name": "desktop",
   "version": "0.1.0",
-  "description": "Your AI Code Assistant",
-  "author": "CJ Luo <cj@codifymate.com>",
-  "homepage": "https://github.com/cj-yourjourney/codifymate-desktop",
+  "private": true,
   "main": "dist-electron/main.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cj-yourjourney/codifymate-desktop"
-  },
   "scripts": {
     "dev": "concurrently \"npm run dev:redux-devtools\" \"npm run dev:next\" \"npm run dev:electron\"",
     "dev:redux-devtools": "redux-devtools --hostname localhost --port 9000",
@@ -19,23 +13,21 @@
     "predist": "node scripts/cleanup-dmg.js",
     "dist": "cross-env NODE_ENV=production npm run build && electron-builder",
     "dist:safe": "npm run predist && npm run dist",
-    "publish": "cross-env NODE_ENV=production npm run build && electron-builder --publish=always",
-    "draft": "cross-env NODE_ENV=production npm run build && electron-builder --publish=never",
     "start": "npm run build:electron && electron .",
     "clean": "rm -rf out .next dist-electron release dist"
   },
   "build": {
     "appId": "com.yourcompany.yourapp",
-    "productName": "CodifyMate",
+    "productName": "Your App Name",
     "directories": {
       "output": "release"
     },
     "files": [
-      "out/**/*",
-      "dist-electron/**/*",
-      "node_modules/**/*",
+      "out//*",
+      "dist-electron//",
+      "node_modules/**/",
       "package.json",
-      "!**/*.map"
+      "!*/.map"
     ],
     "publish": [
       {
@@ -46,61 +38,45 @@
       }
     ],
     "mac": {
-      "category": "public.app-category.productivity",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
+      "category": "public.app-category.productivity"
     },
     "dmg": {
-      "format": "ULFO",
-      "sign": false
+      "format": "ULFO"
     },
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ],
-      "publisherName": "CodifyMate"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "deleteAppDataOnUninstall": false
+      "target": "nsis"
     },
     "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
+      "target": "AppImage"
     }
   },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@reduxjs/toolkit": "^2.8.2",
+    "electron-squirrel-startup": "^1.0.1",
+    "lucide-react": "^0.534.0",
+    "next": "15.4.1",
+    "react": "19.1.0",
+    "react-diff-view": "^3.3.2",
+    "react-dom": "19.1.0"
+  },
   "devDependencies": {
-    "cross-env": "^10.0.0"
+    "@eslint/eslintrc": "^3",
+    "@redux-devtools/cli": "^3.0.4",
+    "@redux-devtools/remote": "^0.9.5",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.8",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
+    "daisyui": "^5.0.46",
+    "electron": "^37.2.3",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wait-on": "^8.0.3"
   }
 }
