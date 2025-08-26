@@ -20,7 +20,7 @@
     "clean": "rm -rf out .next dist-electron release dist"
   },
   "build": {
-    "appId": "com.yourcompany.yourapp",
+    "appId": "com.codifymate.desktop",
     "productName": "CodifyMate",
     "directories": {
       "output": "release"
@@ -41,59 +41,14 @@
       }
     ],
     "mac": {
-      "category": "public.app-category.productivity",
-      "hardenedRuntime": false,
+      "identity": "XIJIE LUO (WNR3CT68TB)",
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "identity": null,
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
-      "extendInfo": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        },
-        "NSAppleEventsUsageDescription": "This app needs to control other applications to provide its functionality.",
-        "NSCameraUsageDescription": "This app may need camera access for certain features.",
-        "NSMicrophoneUsageDescription": "This app may need microphone access for certain features.",
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLName": "Your App Protocol",
-            "CFBundleURLSchemes": [
-              "yourapp"
-            ]
-          }
-        ]
-      }
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+      
     },
-    "dmg": {
-      "format": "ULFO",
-      "sign": false,
-      "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
-    },
+    "afterSign": "scripts/notarize.js",
     "win": {
       "target": "nsis"
     },
@@ -113,6 +68,7 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.0.2",
     "@eslint/eslintrc": "^3",
     "@redux-devtools/cli": "^3.0.4",
     "@redux-devtools/remote": "^0.9.5",
@@ -123,6 +79,7 @@
     "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
     "daisyui": "^5.0.46",
+    "dotenv": "^17.2.1",
     "electron": "^37.2.3",
     "electron-builder": "^26.0.12",
     "eslint": "^9",

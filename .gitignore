@@ -21,6 +21,10 @@
 # production
 /build
 
+# Don't ignore the build folder we created for entitlements
+!build/
+!build/entitlements.mac.plist
+
 
 # Electron build output
 /dist-electron/
