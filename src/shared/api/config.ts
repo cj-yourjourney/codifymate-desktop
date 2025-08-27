@@ -8,7 +8,8 @@ export const API_ENDPOINTS = {
   REGISTER_USER: `${API_BASE_URL}/api/users/register/`,
   SIGNIN_USER: `${API_BASE_URL}/api/users/token/`,
   REFRESH_TOKEN: `${API_BASE_URL}/api/users/token/refresh/`,
-  USER_DETAIL: `${API_BASE_URL}/api/users/detail/`
+  USER_DETAIL: `${API_BASE_URL}/api/users/detail/`,
+  PROMPT_ASSESSMENT: `${API_BASE_URL}/api/prompt-assessment/assess/`
   // Add other endpoints as needed
 } as const
 
@@ -322,6 +323,13 @@ export const apiClient = {
     apiRequest(API_ENDPOINTS.REFINE_CODE, {
       method: 'POST',
       body: JSON.stringify(refineData)
+    }),
+
+  // Prompt assessment endpoint (requires auth)
+  assessPrompt: (promptData: { user_prompt: string }) =>
+    apiRequest(API_ENDPOINTS.PROMPT_ASSESSMENT, {
+      method: 'POST',
+      body: JSON.stringify(promptData)
     })
 }
 

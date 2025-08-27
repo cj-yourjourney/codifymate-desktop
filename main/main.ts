@@ -174,7 +174,7 @@ const createWindow = (): BrowserWindow => {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'About',
-              message: `Your App Name v${app.getVersion()}`,
+              message: `CodifyMate v${app.getVersion()}`,
               detail: 'Built with Electron, Next.js, and ❤️'
             })
           }

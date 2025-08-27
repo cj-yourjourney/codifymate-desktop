@@ -5,6 +5,11 @@ import {
   Step3CodeGeneration
 } from '@/features/aiCodeAssistant/steps'
 import LoadingModal from '@/shared/components/LoadingModal'
+import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
+import {
+  assessPrompt,
+  clearAssessment
+} from '@/features/aiCodeAssistant/promptRefinement/state/promptAssessmentSlice'
 import {
   Edit3,
   HelpCircle,
@@ -19,16 +24,6 @@ import {
   Loader2
 } from 'lucide-react'
 
-// Mock assessment interface to match Step1PromptRefinement
-interface Assessment {
-  score: number
-  type: 'improvement' | 'excellent'
-  content: {
-    title: string
-    items: string[]
-  }
-}
-
 // Mock reference file assessment interface for Step2
 interface ReferenceFileAssessment {
   score: number
@@ -36,28 +31,26 @@ interface ReferenceFileAssessment {
 }
 
 const AICodeAssistant: React.FC = () => {
+  // Redux state and actions
+  const dispatch = useAppDispatch()
+  const {
+    assessment: promptAssessment,
+    isLoading: isAssessing,
+    error: assessmentError
+  } = useAppSelector((state) => state.promptAssessment)
+
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [stepErrors, setStepErrors] = useState<{ [key: number]: string }>({})
 
   // Step 1 state
   const [localUserPrompt, setLocalUserPrompt] = useState<string>('')
-  const [promptAssessment, setPromptAssessment] = useState<Assessment | null>(
-    null
-  )
-  const [isAssessing, setIsAssessing] = useState(false)
 
   // Step 2 state
   const [referenceFileAssessment, setReferenceFileAssessment] =
     useState<ReferenceFileAssessment | null>(null)
   const [isAssessingFiles, setIsAssessingFiles] = useState(false)
 
-  console.log(setReferenceFileAssessment)
-  console.log(isAssessingFiles)
-  console.log(setIsAssessingFiles)
-
-
   // Step 3 state
-  // const [refinePromptText, setRefinePromptText] = useState<string>('')
   const [isGeneratingCode, setIsGeneratingCode] = useState(false)
   const [codeGenerationError, setCodeGenerationError] = useState<string>('')
 
@@ -73,34 +66,6 @@ const AICodeAssistant: React.FC = () => {
     <Code key="code" className="w-5 h-5 text-current" />
   ]
 
-  // Mock assessment data (same as in Step1PromptRefinement)
-  const mockAssessments: Assessment[] = [
-    {
-      score: 4,
-      type: 'improvement',
-      content: {
-        title: 'Your prompt needs more detail',
-        items: [
-          'What specific features or functionality should be included?',
-          'What technology stack or framework should be used?',
-          'Are there any design preferences or constraints to consider?'
-        ]
-      }
-    },
-    {
-      score: 9,
-      type: 'excellent',
-      content: {
-        title: "Excellent prompt! Here's why:",
-        items: [
-          'Clear and specific requirements with detailed functionality description',
-          'Includes technical specifications and implementation preferences',
-          'Provides context about integration needs and existing system constraints'
-        ]
-      }
-    }
-  ]
-
   // Clear step error when moving to different step
   React.useEffect(() => {
     if (stepErrors[currentStep]) {
@@ -110,6 +75,13 @@ const AICodeAssistant: React.FC = () => {
       return () => clearTimeout(timer)
     }
   }, [stepErrors, currentStep])
+
+  // Handle assessment errors from Redux
+  React.useEffect(() => {
+    if (assessmentError) {
+      setStepError(1, assessmentError)
+    }
+  }, [assessmentError])
 
   const setStepError = (step: number, error: string) => {
     setStepErrors((prev) => ({ ...prev, [step]: error }))
@@ -126,28 +98,17 @@ const AICodeAssistant: React.FC = () => {
       return
     }
 
-    setIsAssessing(true)
     clearStepError(1)
-
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Randomly select one of the mock assessments
-    const randomAssessment =
-      mockAssessments[Math.floor(Math.random() * mockAssessments.length)]
-    setPromptAssessment(randomAssessment)
-    setIsAssessing(false)
+    dispatch(assessPrompt({ user_prompt: localUserPrompt.trim() }))
   }
 
-  // Handle assessment callback from Step2
-  // const handleStep2AssessmentComplete = (assessment: {
-  //   score: number
-  //   message: string
-  // }) => {
-  //   setReferenceFileAssessment(assessment)
-  //   setIsAssessingFiles(false)
-  // }
-
+  // Handle step navigation to step 2 from step 1
+  const handleNavigateToStep2 = () => {
+    if (promptAssessment && promptAssessment.score >= 7) {
+      clearStepError(1)
+      setCurrentStep(2)
+    }
+  }
 
   const handleGenerateCode = async () => {
     setIsGeneratingCode(true)
@@ -163,7 +124,6 @@ const AICodeAssistant: React.FC = () => {
         throw new Error(
           'Failed to generate code. Please check your connection and try again.'
         )
-        
       }
 
       setCurrentStep(3)
@@ -235,7 +195,7 @@ const AICodeAssistant: React.FC = () => {
             assessment={promptAssessment}
             isAssessing={isAssessing}
             onAssessPrompt={handleAssessPrompt}
-            onNavigateToStep2={() => setCurrentStep(2)}
+            onNavigateToStep2={handleNavigateToStep2}
           />
         )
       case 2:
@@ -393,8 +353,6 @@ const AICodeAssistant: React.FC = () => {
 
       {/* Main Content - Flexible height */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Step Header */}
-
         {/* Step-specific errors */}
         {stepErrors[currentStep] && (
           <div className="flex-shrink-0 px-6 pt-4">

@@ -1,24 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { BarChart3, FileText } from 'lucide-react'
+import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import {
-
-  BarChart3,
-  FileText,
-
-} from 'lucide-react'
-
-interface Assessment {
-  score: number
-  type: 'improvement' | 'excellent'
-  content: {
-    title: string
-    items: string[]
-  }
-}
+  assessPrompt,
+  clearAssessment,
+  clearError
+} from './state/promptAssessmentSlice'
+import type { AssessmentState } from './state/promptAssessmentSlice'
 
 interface Step1PromptRefinementProps {
   userPrompt?: string
   setUserPrompt?: (prompt: string) => void
-  assessment?: Assessment | null
+  assessment?: AssessmentState | null
   isAssessing?: boolean
   onAssessPrompt?: () => void
   onNavigateToStep2?: () => void
@@ -32,48 +25,39 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
   onAssessPrompt: externalOnAssessPrompt,
   onNavigateToStep2
 }) => {
-  // Use external props if provided, otherwise use local state
+  // Redux state and actions
+  const dispatch = useAppDispatch()
+  const {
+    assessment: reduxAssessment,
+    isLoading: reduxIsAssessing,
+    error,
+    lastPrompt
+  } = useAppSelector((state) => state.promptAssessment)
+
+  // Use external props if provided, otherwise use local state and Redux
   const [localUserPrompt, setLocalUserPrompt] = useState('')
-  const [localAssessment, setLocalAssessment] = useState<Assessment | null>(
-    null
-  )
-  const [localIsAssessing, setLocalIsAssessing] = useState(false)
 
-  const userPrompt =
-    externalUserPrompt !== undefined ? externalUserPrompt : localUserPrompt
-  const setUserPrompt = externalSetUserPrompt || setLocalUserPrompt
+  // Determine which prompt value and setter to use
+  const isControlledByParent =
+    externalUserPrompt !== undefined && externalSetUserPrompt !== undefined
+  const userPrompt = isControlledByParent ? externalUserPrompt : localUserPrompt
+  const setUserPrompt = isControlledByParent
+    ? externalSetUserPrompt
+    : setLocalUserPrompt
   const assessment =
-    externalAssessment !== undefined ? externalAssessment : localAssessment
+    externalAssessment !== undefined ? externalAssessment : reduxAssessment
   const isAssessing =
-    externalIsAssessing !== undefined ? externalIsAssessing : localIsAssessing
+    externalIsAssessing !== undefined ? externalIsAssessing : reduxIsAssessing
 
-  // Mock assessment data
-  const mockAssessments: Assessment[] = [
-    {
-      score: 4,
-      type: 'improvement',
-      content: {
-        title: 'Your prompt needs more detail',
-        items: [
-          'What specific features or functionality should be included?',
-          'What technology stack or framework should be used?',
-          'Are there any design preferences or constraints to consider?'
-        ]
-      }
-    },
-    {
-      score: 9,
-      type: 'excellent',
-      content: {
-        title: "Excellent prompt! Here's why:",
-        items: [
-          'Clear and specific requirements with detailed functionality description',
-          'Includes technical specifications and implementation preferences',
-          'Provides context about integration needs and existing system constraints'
-        ]
-      }
+  // Clear error when component mounts or when prompt changes
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        dispatch(clearError())
+      }, 5000)
+      return () => clearTimeout(timer)
     }
-  ]
+  }, [error, dispatch])
 
   // Handle prompt assessment
   const handleAssessPrompt = async () => {
@@ -86,16 +70,16 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
       return
     }
 
-    setLocalIsAssessing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    const randomAssessment =
-      mockAssessments[Math.floor(Math.random() * mockAssessments.length)]
-    setLocalAssessment(randomAssessment)
-    setLocalIsAssessing(false)
+    // Clear previous assessment if prompt has changed
+    if (lastPrompt && lastPrompt !== userPrompt.trim()) {
+      dispatch(clearAssessment())
+    }
+
+    // Dispatch the assessment action
+    dispatch(assessPrompt({ user_prompt: userPrompt.trim() }))
   }
 
   const shouldShowSelectFiles = assessment && assessment.score >= 7
-
 
   const handleButtonClick = () => {
     if (shouldShowSelectFiles && onNavigateToStep2) {
@@ -112,8 +96,33 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Error Banner */}
+        {error && (
+          <div className="rounded-xl p-6 mb-8 border-l-4 bg-red-50 border-red-400">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-4 bg-red-500">
+                  !
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    Assessment Failed
+                  </h3>
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => dispatch(clearError())}
+                className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Assessment Result Banner */}
-        {assessment && (
+        {assessment && !error && (
           <div
             className={`rounded-xl p-6 mb-8 border-l-4 ${
               assessment.score >= 7
@@ -143,6 +152,11 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                   >
                     {assessment.content.title}
                   </p>
+                  {assessment.category && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Category: {assessment.category}
+                    </p>
+                  )}
                 </div>
               </div>
               <div
@@ -169,22 +183,18 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
           {/* Prompt Input - Takes up 2 columns */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              
-
               <div className="space-y-4">
                 <textarea
                   className="w-full h-64 p-4 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder=""
+                  placeholder="Describe the code you want to generate. Be specific about functionality, technology stack, UI/UX requirements, and any constraints..."
                   value={userPrompt}
                   onChange={(e) => setUserPrompt(e.target.value)}
                 />
-
-              
               </div>
             </div>
 
             {/* Assessment Details - Only show when assessment exists */}
-            {assessment && (
+            {assessment && !error && (
               <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
@@ -232,6 +242,18 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                     </div>
                   ))}
                 </div>
+
+                {/* Credit usage display */}
+                {assessment.creditUsage && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Credit Usage:</span>
+                      <span className="font-medium text-gray-900">
+                        {assessment.creditUsage.toFixed(2)} credits
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -299,7 +321,7 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
             </div>
 
             {/* Quick Stats */}
-            {assessment && (
+            {assessment && !error && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 className="font-semibold text-gray-900 mb-4">
                   Assessment Summary
@@ -330,12 +352,34 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
-                      Feedback Points
+                      {assessment.type === 'excellent'
+                        ? 'Strengths'
+                        : 'Questions'}
                     </span>
                     <span className="text-sm font-medium text-gray-900">
                       {assessment.content.items.length}
                     </span>
                   </div>
+
+                  {assessment.category && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Category</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {assessment.category}
+                      </span>
+                    </div>
+                  )}
+
+                  {assessment.creditUsage && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Credits Used
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {assessment.creditUsage.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
