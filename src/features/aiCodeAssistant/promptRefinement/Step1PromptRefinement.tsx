@@ -79,17 +79,21 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
     dispatch(assessPrompt({ user_prompt: userPrompt.trim() }))
   }
 
-  const shouldShowSelectFiles = assessment && assessment.score >= 7
+  // Modified: Allow proceeding to Step2 after any assessment (regardless of score)
+  const shouldShowSelectFiles = assessment !== null && !error
 
-  const handleButtonClick = () => {
-    if (shouldShowSelectFiles && onNavigateToStep2) {
-      onNavigateToStep2()
+  // Always allow assessment, but only show continue option after first assessment
+  const handleAssessButtonClick = () => {
+    if (externalOnAssessPrompt) {
+      externalOnAssessPrompt()
     } else {
-      if (externalOnAssessPrompt) {
-        externalOnAssessPrompt()
-      } else {
-        handleAssessPrompt()
-      }
+      handleAssessPrompt()
+    }
+  }
+
+  const handleContinueButtonClick = () => {
+    if (onNavigateToStep2) {
+      onNavigateToStep2()
     }
   }
 
@@ -127,6 +131,8 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
             className={`rounded-xl p-6 mb-8 border-l-4 ${
               assessment.score >= 7
                 ? 'bg-green-50 border-green-400'
+                : assessment.score >= 5
+                ? 'bg-blue-50 border-blue-400'
                 : 'bg-amber-50 border-amber-400'
             }`}
           >
@@ -134,7 +140,11 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
               <div className="flex items-start">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-4 ${
-                    assessment.score >= 7 ? 'bg-green-500' : 'bg-amber-500'
+                    assessment.score >= 7
+                      ? 'bg-green-500'
+                      : assessment.score >= 5
+                      ? 'bg-blue-500'
+                      : 'bg-amber-500'
                   }`}
                 >
                   {assessment.score}
@@ -147,6 +157,8 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                     className={`text-sm ${
                       assessment.score >= 7
                         ? 'text-green-700'
+                        : assessment.score >= 5
+                        ? 'text-blue-700'
                         : 'text-amber-700'
                     }`}
                   >
@@ -157,6 +169,13 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                       Category: {assessment.category}
                     </p>
                   )}
+                  {/* Modified: Show encouraging message for all scores */}
+                  {assessment.score < 7 && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      You can proceed to the next step or refine your prompt
+                      further.
+                    </p>
+                  )}
                 </div>
               </div>
               <div
@@ -164,6 +183,8 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                   assessment.score >= 8
                     ? 'bg-green-100 text-green-800'
                     : assessment.score >= 6
+                    ? 'bg-blue-100 text-blue-800'
+                    : assessment.score >= 4
                     ? 'bg-amber-100 text-amber-800'
                     : 'bg-red-100 text-red-800'
                 }`}
@@ -172,6 +193,8 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                   ? 'Excellent'
                   : assessment.score >= 6
                   ? 'Good'
+                  : assessment.score >= 4
+                  ? 'Fair'
                   : 'Needs Work'}
               </div>
             </div>
@@ -217,6 +240,8 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                         assessment.score >= 8
                           ? 'bg-green-500'
                           : assessment.score >= 6
+                          ? 'bg-blue-500'
+                          : assessment.score >= 4
                           ? 'bg-amber-500'
                           : 'bg-red-500'
                       }`}
@@ -233,6 +258,8 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5 ${
                           assessment.type === 'excellent'
                             ? 'bg-green-100 text-green-700'
+                            : assessment.score >= 7
+                            ? 'bg-blue-100 text-blue-700'
                             : 'bg-amber-100 text-amber-700'
                         }`}
                       >
@@ -261,32 +288,19 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Assessment Action Card */}
-            <div
-              className={`rounded-xl p-6 text-white transition-all duration-300 ${
-                shouldShowSelectFiles
-                  ? 'bg-gradient-to-r from-green-600 to-emerald-600'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600'
-              }`}
-            >
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white transition-all duration-300">
               <div className="text-center">
-                <div className="text-4xl mb-4">
-                  {shouldShowSelectFiles ? '🎯' : '🔍'}
-                </div>
-                <h3 className="text-lg font-semibold mb-2">
-                  {shouldShowSelectFiles
-                    ? 'Ready for Next Step!'
-                    : 'Get AI Feedback'}
-                </h3>
+                <div className="text-4xl mb-4">🔍</div>
+                <h3 className="text-lg font-semibold mb-2">Get AI Feedback</h3>
                 <p className="text-sm opacity-90 mb-6">
-                  {shouldShowSelectFiles
-                    ? 'Your prompt looks great! Now select reference files for better context.'
-                    : 'Get detailed feedback on your prompt to ensure optimal results from AI code generation.'}
+                  Get detailed feedback on your prompt to ensure optimal results
+                  from AI code generation.
                 </p>
 
                 <button
-                  onClick={handleButtonClick}
+                  onClick={handleAssessButtonClick}
                   disabled={!userPrompt.trim() || isAssessing}
-                  className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
+                  className={`w-full py-3 px-4 rounded-lg font-medium transition-all mb-4 ${
                     isAssessing
                       ? 'bg-white/20 cursor-not-allowed'
                       : !userPrompt.trim()
@@ -299,18 +313,26 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Assessing...
                     </span>
-                  ) : shouldShowSelectFiles ? (
-                    <span className="flex items-center justify-center">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Select Reference Files
-                    </span>
                   ) : (
                     <span className="flex items-center justify-center">
                       <BarChart3 className="w-4 h-4 mr-2" />
-                      Assess Your Prompt
+                      {assessment ? 'Assess Again' : 'Assess Your Prompt'}
                     </span>
                   )}
                 </button>
+
+                {/* Continue Button - Only show after assessment */}
+                {shouldShowSelectFiles && (
+                  <button
+                    onClick={handleContinueButtonClick}
+                    className="w-full py-3 px-4 rounded-lg font-medium transition-all bg-green-500 text-white hover:bg-green-600"
+                  >
+                    <span className="flex items-center justify-center">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Continue to Next Step
+                    </span>
+                  </button>
+                )}
 
                 {!userPrompt.trim() && (
                   <p className="text-xs opacity-75 mt-2">
@@ -341,12 +363,12 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                       className={`text-sm font-medium ${
                         assessment.score >= 7
                           ? 'text-green-600'
-                          : 'text-amber-600'
+                          : 'text-blue-600'
                       }`}
                     >
                       {assessment.score >= 7
                         ? 'Ready to proceed'
-                        : 'Needs improvement'}
+                        : 'Can proceed'}
                     </span>
                   </div>
 
@@ -354,7 +376,7 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                     <span className="text-sm text-gray-600">
                       {assessment.type === 'excellent'
                         ? 'Strengths'
-                        : 'Questions'}
+                        : 'Feedback Points'}
                     </span>
                     <span className="text-sm font-medium text-gray-900">
                       {assessment.content.items.length}

@@ -10,19 +10,7 @@ import {
   assessPrompt,
   clearAssessment
 } from '@/features/aiCodeAssistant/promptRefinement/state/promptAssessmentSlice'
-import {
-  Edit3,
-  HelpCircle,
-  Code,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  X,
-  CheckCircle,
-  AlertTriangle,
-  AlertCircle,
-  Loader2
-} from 'lucide-react'
+import { Edit3, HelpCircle, Code, Check, AlertCircle, X } from 'lucide-react'
 
 // Mock reference file assessment interface for Step2
 interface ReferenceFileAssessment {
@@ -54,16 +42,25 @@ const AICodeAssistant: React.FC = () => {
   const [isGeneratingCode, setIsGeneratingCode] = useState(false)
   const [codeGenerationError, setCodeGenerationError] = useState<string>('')
 
-  const stepTitles = [
-    'Write Prompt',
-    'Add Details & Files',
-    'Generate & Refine'
-  ]
-
-  const stepIcons = [
-    <Edit3 key="edit" className="w-5 h-5 text-current" />,
-    <HelpCircle key="help" className="w-5 h-5 text-current" />,
-    <Code key="code" className="w-5 h-5 text-current" />
+  const steps = [
+    {
+      id: 1,
+      title: 'Write Prompt',
+      subtitle: 'Describe your requirements',
+      icon: Edit3
+    },
+    {
+      id: 2,
+      title: 'Add Details & Files',
+      subtitle: 'Provide context and references',
+      icon: HelpCircle
+    },
+    {
+      id: 3,
+      title: 'Generate & Refine',
+      subtitle: 'Create optimized code',
+      icon: Code
+    }
   ]
 
   // Clear step error when moving to different step
@@ -102,9 +99,9 @@ const AICodeAssistant: React.FC = () => {
     dispatch(assessPrompt({ user_prompt: localUserPrompt.trim() }))
   }
 
-  // Handle step navigation to step 2 from step 1
+  // Modified: Handle step navigation to step 2 from step 1 - now only requires assessment to exist
   const handleNavigateToStep2 = () => {
-    if (promptAssessment && promptAssessment.score >= 7) {
+    if (promptAssessment !== null) {
       clearStepError(1)
       setCurrentStep(2)
     }
@@ -140,49 +137,37 @@ const AICodeAssistant: React.FC = () => {
     }
   }
 
-  const handleNextStep = async () => {
-    // Clear any existing errors for current step
-    clearStepError(currentStep)
-
-    if (currentStep === 2) {
-      await handleGenerateCode()
-    }
-  }
-
-  const handlePrevStep = () => {
-    if (currentStep > 1) {
+  const handleStepClick = (stepId: number) => {
+    if (canNavigateToStep(stepId)) {
       clearStepError(currentStep)
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(stepId)
     }
   }
 
-  const handleStepClick = (step: number) => {
-    if (
-      step <= currentStep ||
-      (step === currentStep + 1 && canProceedToStep(step))
-    ) {
-      clearStepError(currentStep)
-      setCurrentStep(step)
-    }
-  }
-
-  const canProceedToStep = (step: number): boolean => {
-    switch (step) {
+  // Modified: Updated navigation logic to allow Step 2 access after any assessment
+  const canNavigateToStep = (stepId: number): boolean => {
+    switch (stepId) {
       case 1:
         return true
       case 2:
-        return (
-          localUserPrompt.trim() !== '' &&
-          promptAssessment !== null &&
-          promptAssessment.score >= 7
-        )
+        // Modified: Only requires prompt and any assessment (regardless of score)
+        return localUserPrompt.trim() !== '' && promptAssessment !== null
       case 3:
         return (
-          referenceFileAssessment !== null && referenceFileAssessment.score >= 7
+          (referenceFileAssessment !== null &&
+            referenceFileAssessment.score >= 7) ||
+          currentStep >= 3
         )
       default:
         return false
     }
+  }
+
+  const getStepStatus = (stepId: number) => {
+    if (currentStep === stepId) return 'active'
+    if (currentStep > stepId) return 'completed'
+    if (canNavigateToStep(stepId)) return 'available'
+    return 'disabled'
   }
 
   const renderStepContent = () => {
@@ -199,7 +184,13 @@ const AICodeAssistant: React.FC = () => {
           />
         )
       case 2:
-        return <Step2PromptClarification />
+        return (
+          <Step2PromptClarification
+            onGenerateCode={handleGenerateCode}
+            isGeneratingCode={isGeneratingCode}
+            onReferenceFileAssessment={setReferenceFileAssessment}
+          />
+        )
       case 3:
         return <Step3CodeGeneration />
       default:
@@ -207,32 +198,25 @@ const AICodeAssistant: React.FC = () => {
     }
   }
 
-  const shouldShowNextButton = () => {
-    // Only show the main next button for step 2 when ready to generate code
-    return (
-      currentStep === 2 &&
-      referenceFileAssessment &&
-      referenceFileAssessment.score >= 7
-    )
-  }
-
   const renderStepError = (step: number) => {
     const error = stepErrors[step]
     if (!error) return null
 
     return (
-      <div className="alert alert-error shadow-lg mb-6">
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center">
-            <AlertCircle className="stroke-current flex-shrink-0 h-6 w-6 mr-2" />
-            <span className="text-sm">{error}</span>
+      <div className="mx-6 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+              <span className="text-sm text-red-700">{error}</span>
+            </div>
+            <button
+              className="text-red-400 hover:text-red-600 transition-colors"
+              onClick={() => clearStepError(step)}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => clearStepError(step)}
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
       </div>
     )
@@ -256,7 +240,7 @@ const AICodeAssistant: React.FC = () => {
   const loadingConfig = getLoadingConfig()
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-base-200 to-base-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Loading Modal */}
       {loadingConfig && (
         <LoadingModal
@@ -266,170 +250,163 @@ const AICodeAssistant: React.FC = () => {
         />
       )}
 
-      {/* Header Spacer - same height, empty */}
-      <div className="h-12 bg-base-200" />
+      {/* Header with Integrated Step Navigation */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          {/* App Title */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              AI Code Assistant
+            </h1>
+            <p className="text-gray-600">
+              Transform your ideas into optimized code in three simple steps
+            </p>
+          </div>
 
-      {/* Progress Steps - Fixed height */}
-      <div className="flex-shrink-0 bg-base-100/50 backdrop-blur-sm border-b border-base-200 px-6 py-4">
-        <div className="flex items-center justify-center">
-          <div className="flex items-center space-x-8">
-            {stepTitles.map((title, index) => {
-              const stepNumber = index + 1
-              const isActive = currentStep === stepNumber
-              const isCompleted = currentStep > stepNumber
-              const isClickable =
-                canProceedToStep(stepNumber) || currentStep >= stepNumber
+          {/* Enhanced Step Navigation */}
+          <div className="flex justify-center">
+            <div className="flex items-center space-x-8">
+              {steps.map((step, index) => {
+                const status = getStepStatus(step.id)
+                const Icon = step.icon
+                const isClickable = status !== 'disabled'
 
-              return (
-                <div
-                  key={stepNumber}
-                  className={`flex items-center ${
-                    index < stepTitles.length - 1 ? 'relative' : ''
-                  }`}
-                >
-                  {/* Step Circle */}
-                  <div
-                    className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                      isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
-                    } ${
-                      isCompleted
-                        ? 'border-stone-300 bg-stone-100 text-stone-600 shadow-sm'
-                        : isActive
-                        ? 'border-primary bg-primary text-primary-content shadow-lg scale-110'
-                        : 'border-stone-200 bg-stone-50 text-stone-400'
-                    }`}
-                    onClick={() => isClickable && handleStepClick(stepNumber)}
-                  >
-                    {isCompleted ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      stepIcons[index]
+                return (
+                  <div key={step.id} className="flex items-center">
+                    {/* Step Button */}
+                    <button
+                      onClick={() => isClickable && handleStepClick(step.id)}
+                      disabled={!isClickable}
+                      className={`group flex items-center transition-all duration-300 ${
+                        isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+                      }`}
+                    >
+                      {/* Step Circle */}
+                      <div
+                        className={`relative flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 ${
+                          status === 'completed'
+                            ? 'border-green-500 bg-green-500 text-white shadow-md'
+                            : status === 'active'
+                            ? 'border-blue-500 bg-blue-500 text-white shadow-lg scale-110'
+                            : status === 'available'
+                            ? 'border-blue-200 bg-blue-50 text-blue-600 hover:border-blue-400 hover:bg-blue-100'
+                            : 'border-gray-200 bg-gray-50 text-gray-400'
+                        }`}
+                      >
+                        {status === 'completed' ? (
+                          <Check className="w-5 h-5" />
+                        ) : (
+                          <Icon className="w-5 h-5" />
+                        )}
+
+                        {/* Active Step Pulse */}
+                        {status === 'active' && (
+                          <div className="absolute inset-0 rounded-full border-2 border-blue-300 animate-ping opacity-75"></div>
+                        )}
+                      </div>
+
+                      {/* Step Info */}
+                      <div className="ml-4 text-left">
+                        <div
+                          className={`text-sm font-semibold transition-colors ${
+                            status === 'active'
+                              ? 'text-blue-600'
+                              : status === 'completed'
+                              ? 'text-green-600'
+                              : status === 'available'
+                              ? 'text-gray-700 group-hover:text-blue-600'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {step.title}
+                        </div>
+                        <div
+                          className={`text-xs transition-colors ${
+                            status === 'active'
+                              ? 'text-blue-500'
+                              : status === 'completed'
+                              ? 'text-green-500'
+                              : status === 'available'
+                              ? 'text-gray-500 group-hover:text-blue-500'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {step.subtitle}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Connection Line */}
+                    {index < steps.length - 1 && (
+                      <div className="mx-6">
+                        <div
+                          className={`w-16 h-0.5 transition-colors duration-300 ${
+                            currentStep > step.id
+                              ? 'bg-green-300'
+                              : currentStep === step.id
+                              ? 'bg-blue-300'
+                              : 'bg-gray-200'
+                          }`}
+                        />
+                      </div>
                     )}
                   </div>
-
-                  {/* Step Label */}
-                  <div className="ml-3">
-                    <div
-                      className={`text-sm font-semibold ${
-                        isActive
-                          ? 'text-primary'
-                          : isCompleted
-                          ? 'text-stone-700'
-                          : 'text-stone-500'
-                      }`}
-                    >
-                      Step {stepNumber}
-                    </div>
-                    <div
-                      className={`text-xs ${
-                        isActive
-                          ? 'text-primary/80'
-                          : isCompleted
-                          ? 'text-stone-600'
-                          : 'text-stone-400'
-                      }`}
-                    >
-                      {title}
-                    </div>
-                  </div>
-
-                  {/* Connection Line */}
-                  {index < stepTitles.length - 1 && (
-                    <div
-                      className={`absolute left-10 top-5 w-8 h-0.5 transition-colors ${
-                        currentStep > stepNumber
-                          ? 'bg-stone-300'
-                          : 'bg-stone-200'
-                      }`}
-                      style={{ transform: 'translateX(1rem)' }}
-                    />
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content - Flexible height */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Step-specific errors */}
-        {stepErrors[currentStep] && (
-          <div className="flex-shrink-0 px-6 pt-4">
-            {renderStepError(currentStep)}
-          </div>
-        )}
-
-        {/* Step Content - Takes remaining space */}
-        <div className="flex-1 overflow-auto bg-base-100">
-          {renderStepContent()}
-        </div>
-
-        {/* Navigation Footer - Fixed height */}
-        <div className="flex-shrink-0 bg-base-100 border-t border-base-200 px-6 py-4">
-          <div className="flex justify-between items-center">
-            <button
-              className="btn btn-outline"
-              onClick={handlePrevStep}
-              disabled={currentStep === 1 || isAssessing || isGeneratingCode}
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Previous
-            </button>
-
-            {shouldShowNextButton() ? (
-              <button
-                className={`btn btn-primary ${
-                  stepErrors[currentStep] ? 'btn-disabled' : ''
+          {/* Step Status Indicator */}
+          <div className="mt-6 text-center">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gray-100 border border-gray-200">
+              <div
+                className={`w-2 h-2 rounded-full mr-3 ${
+                  stepErrors[currentStep]
+                    ? 'bg-red-400'
+                    : currentStep === 3
+                    ? 'bg-green-400'
+                    : 'bg-blue-400'
                 }`}
-                onClick={handleNextStep}
-                disabled={!!stepErrors[currentStep]}
-              >
-                {isGeneratingCode ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating Code...
-                  </>
-                ) : (
-                  <>
-                    Generate Code
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </button>
-            ) : currentStep === 3 ? (
-              <div className="flex items-center text-primary">
-                <CheckCircle className="w-5 h-5 mr-2" />
-                <span className="text-sm font-medium">
-                  Code generation complete!
-                </span>
-              </div>
-            ) : (
-              <div></div>
-            )}
+              />
+              <span className="text-sm font-medium text-gray-700">
+                {stepErrors[currentStep]
+                  ? 'Action Required'
+                  : currentStep === 3
+                  ? 'Ready to Generate'
+                  : `Step ${currentStep} of ${steps.length}`}
+              </span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Step-specific Error Display */}
+      {stepErrors[currentStep] && renderStepError(currentStep)}
+
+      {/* Main Content Area */}
+      <div className="flex-1">{renderStepContent()}</div>
 
       {/* Global error display for code generation errors */}
       {codeGenerationError && currentStep === 3 && (
-        <div className="absolute bottom-20 left-6 right-6 z-10">
-          <div className="alert alert-warning shadow-lg">
-            <div className="flex justify-between items-center w-full">
+        <div className="fixed bottom-6 left-6 right-6 z-50">
+          <div className="max-w-md mx-auto bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-lg">
+            <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <AlertTriangle className="stroke-current flex-shrink-0 h-6 w-6 mr-2" />
+                <AlertCircle className="w-5 h-5 text-amber-500 mr-3" />
                 <div>
-                  <h3 className="font-bold">Code Generation Issue</h3>
-                  <div className="text-sm opacity-80">
+                  <h4 className="font-medium text-amber-800">
+                    Code Generation Issue
+                  </h4>
+                  <p className="text-sm text-amber-700">
                     {codeGenerationError}
-                  </div>
+                  </p>
                 </div>
               </div>
               <button
-                className="btn btn-sm btn-outline"
+                className="text-amber-400 hover:text-amber-600 ml-4"
                 onClick={() => setCodeGenerationError('')}
               >
-                Dismiss
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
