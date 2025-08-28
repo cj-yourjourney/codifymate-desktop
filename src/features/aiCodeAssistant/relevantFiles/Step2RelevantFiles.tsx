@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { FolderOpen, FileText, BarChart3, Plus, Check, X } from 'lucide-react'
+import {
+  FolderOpen,
+  FileText,
+  BarChart3,
+  Plus,
+  Check,
+  X,
+  FileIcon
+} from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import {
   analyzeRelevantFiles,
@@ -26,8 +34,7 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
     projectFiles,
     aiRecommendedFiles,
     relevantFiles,
-    creditUsage,
-    remainingCredits,
+    projectStructure,
     isAnalyzing,
     error
   } = useAppSelector((state) => state.relevantFiles)
@@ -57,12 +64,8 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
 
       if (selectedPath) {
         dispatch(setProjectPath(selectedPath))
-
-        // Get all files in the project
         const files = await window.electronAPI.getProjectFiles(selectedPath)
         dispatch(setProjectFiles(files))
-
-        // Clear previous analysis
         dispatch(clearRelevantFiles())
       }
     } catch (err) {
@@ -91,10 +94,8 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
     const isSelected = relevantFiles.some((file) => file.file_path === filePath)
 
     if (isSelected) {
-      // Remove file
       dispatch(removeSelectedFile(filePath))
     } else {
-      // Add file - need to read content first
       setIsLoadingContent((prev) => ({ ...prev, [filePath]: true }))
       try {
         const content = await window.electronAPI.readFileContent(filePath)
@@ -117,7 +118,6 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
       const selectedFilePaths = await window.electronAPI.selectFiles()
 
       for (const filePath of selectedFilePaths) {
-        // Check if file is already selected
         const isAlreadySelected = relevantFiles.some(
           (file) => file.file_path === filePath
         )
@@ -142,16 +142,12 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
     }
   }
 
-  // Handle removing selected file
-  const handleRemoveSelectedFile = (filePath: string) => {
-    dispatch(removeSelectedFile(filePath))
-  }
-
   // Handle continue button
   const handleContinue = () => {
     const requestPayload = {
       user_prompt: user_prompt,
-      relevant_files: relevantFiles
+      relevant_files: relevantFiles,
+      project_structure: projectStructure
     }
 
     console.log('Request Payload for Code Generation:', requestPayload)
@@ -161,34 +157,27 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
     }
   }
 
-  // Reset component state
   const handleReset = () => {
     dispatch(resetState())
   }
 
   const getFileIcon = (filePath: string) => {
     const ext = filePath.split('.').pop()?.toLowerCase()
-    switch (ext) {
-      case 'tsx':
-      case 'ts':
-        return '🔷'
-      case 'js':
-      case 'jsx':
-        return '🟨'
-      case 'json':
-        return '📋'
-      case 'css':
-      case 'scss':
-        return '🎨'
-      case 'html':
-        return '🌐'
-      case 'md':
-        return '📝'
-      case 'py':
-        return '🐍'
-      default:
-        return '📄'
+    const iconMap: Record<string, string> = {
+      tsx: '⚛️',
+      ts: '📘',
+      jsx: '⚛️',
+      js: '📄',
+      json: '📋',
+      css: '🎨',
+      scss: '🎨',
+      html: '🌐',
+      md: '📝',
+      py: '🐍',
+      java: '☕',
+      cpp: '⚙️'
     }
+    return iconMap[ext || ''] || '📄'
   }
 
   const getFileName = (filePath: string) => {
@@ -196,7 +185,7 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
   }
 
   const getRelativePath = (filePath: string, basePath: string) => {
-    if (filePath.startsWith(basePath)) {
+    if (basePath && filePath.startsWith(basePath)) {
       return filePath.substring(basePath.length + 1)
     }
     return filePath
@@ -204,12 +193,12 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex justify-between items-center">
-              <p className="text-red-700">{error}</p>
+              <p className="text-red-700 text-sm">{error}</p>
               <button
                 onClick={() => dispatch(clearError())}
                 className="text-red-500 hover:text-red-700"
@@ -220,343 +209,223 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
           </div>
         )}
 
-        {/* Selected Files Section */}
-        {relevantFiles.length > 0 && (
-          <div className="bg-white border rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">Selected Files</h3>
-              <span className="text-sm text-gray-600">
-                {relevantFiles.length} file
-                {relevantFiles.length !== 1 ? 's' : ''} selected
-              </span>
-            </div>
+        {/* Project Selection */}
+        <div className="bg-white rounded-lg border p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Project Setup
+          </h3>
 
-            <div className="space-y-2">
-              {relevantFiles.map((file, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-blue-50 rounded border border-blue-200"
-                >
-                  <div className="flex items-center space-x-3 flex-1">
-                    <span className="text-lg">
-                      {getFileIcon(file.file_path)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-mono text-sm font-medium text-gray-900 truncate">
-                        {getFileName(file.file_path)}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate">
-                        {projectPath
-                          ? getRelativePath(file.file_path, projectPath)
-                          : file.file_path}
-                      </div>
-                    </div>
+          {!projectPath ? (
+            <div className="text-center py-8">
+              <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 mb-4">
+                Select your project folder to get started
+              </p>
+              <button
+                onClick={handleSelectFolder}
+                disabled={isLoadingFiles}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isLoadingFiles ? 'Loading...' : 'Select Folder'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 font-mono">
+                      {projectPath.split('/').pop()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {projectFiles.length} files found
+                    </p>
                   </div>
                   <button
-                    onClick={() => handleRemoveSelectedFile(file.file_path)}
-                    className="text-red-500 hover:text-red-700 p-1"
+                    onClick={handleReset}
+                    className="text-sm text-gray-500 hover:text-gray-700"
                   >
-                    <X className="w-4 h-4" />
+                    Change
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {/* AI Recommended Files */}
-        {aiRecommendedFiles.length > 0 && (
-          <div className="bg-white border rounded-lg p-6 mb-6">
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleAnalyzeFiles}
+                  disabled={
+                    !user_prompt || projectFiles.length === 0 || isAnalyzing
+                  }
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <BarChart3 className="w-4 h-4 inline mr-2" />
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze Files'}
+                </button>
+
+                <button
+                  onClick={handleSelectManualFiles}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  <Plus className="w-4 h-4 inline mr-2" />
+                  Add Files
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* File Selection */}
+        {(aiRecommendedFiles.length > 0 || relevantFiles.length > 0) && (
+          <div className="bg-white rounded-lg border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">
-                AI Recommended Files
+              <h3 className="text-lg font-medium text-gray-900">
+                File Selection
               </h3>
-              <div className="flex items-center space-x-4 text-sm">
-                {creditUsage && (
-                  <span className="text-gray-600">
-                    Credits: {creditUsage.toFixed(2)}
-                  </span>
-                )}
-                {remainingCredits && (
-                  <span className="text-gray-600">
-                    Remaining: {remainingCredits.toFixed(2)}
-                  </span>
-                )}
+              <div className="text-sm text-gray-600">
+                {relevantFiles.length} selected
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600 mb-3">
-                Select files to include as context ({aiRecommendedFiles.length}{' '}
-                recommended):
-              </p>
-              {aiRecommendedFiles.map((filePath, index) => {
-                const isSelected = relevantFiles.some(
-                  (file) => file.file_path === filePath
-                )
-                const isLoading = isLoadingContent[filePath]
+            {/* AI Recommended Files */}
+            {aiRecommendedFiles.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  AI recommended files ({aiRecommendedFiles.length}):
+                </p>
+                <div className="space-y-2">
+                  {aiRecommendedFiles.map((filePath, index) => {
+                    const isSelected = relevantFiles.some(
+                      (file) => file.file_path === filePath
+                    )
+                    const isLoading = isLoadingContent[filePath]
 
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-center justify-between p-3 rounded border cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}
-                    onClick={() => !isLoading && handleToggleAiFile(filePath)}
-                  >
-                    <div className="flex items-center space-x-3 flex-1">
-                      <span className="text-lg">{getFileIcon(filePath)}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-mono text-sm font-medium text-gray-900 truncate">
-                          {getFileName(filePath)}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {projectPath
-                            ? getRelativePath(filePath, projectPath)
-                            : filePath}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      {isLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
-                      ) : isSelected ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <div className="w-4 h-4 border-2 border-gray-300 rounded" />
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Project Selection */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Select Project Folder
-              </h3>
-
-              {!projectPath ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FolderOpen className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-gray-500 mb-6">
-                    Choose a project folder to analyze relevant files
-                  </p>
-                  <button
-                    onClick={handleSelectFolder}
-                    disabled={isLoadingFiles}
-                    className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                      isLoadingFiles
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {isLoadingFiles ? (
-                      <span className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                        Loading Files...
-                      </span>
-                    ) : (
-                      <span className="flex items-center">
-                        <FolderOpen className="w-4 h-4 mr-2" />
-                        Select Folder
-                      </span>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">
-                          Selected Project:
-                        </p>
-                        <p className="font-mono text-sm font-medium text-gray-900">
-                          {projectPath}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {projectFiles.length} files found
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleReset}
-                        className="text-gray-500 hover:text-gray-700 text-sm"
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        }`}
+                        onClick={() =>
+                          !isLoading && handleToggleAiFile(filePath)
+                        }
                       >
-                        Change
-                      </button>
-                    </div>
-                  </div>
-
-                  {projectFiles.length > 0 && (
-                    <div className="max-h-64 overflow-y-auto border rounded-lg">
-                      <div className="p-3 bg-gray-50 border-b">
-                        <p className="text-sm font-medium text-gray-700">
-                          Project Files ({projectFiles.length})
-                        </p>
-                      </div>
-                      <div className="divide-y">
-                        {projectFiles.slice(0, 100).map((filePath, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center space-x-3 p-2"
-                          >
-                            <span className="text-sm">
-                              {getFileIcon(filePath)}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-mono text-gray-900 truncate">
-                                {getFileName(filePath)}
-                              </div>
-                              <div className="text-xs text-gray-500 truncate">
-                                {getRelativePath(filePath, projectPath)}
-                              </div>
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <span>{getFileIcon(filePath)}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {getFileName(filePath)}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {getRelativePath(filePath, projectPath || '')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          {isLoading ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
+                          ) : (
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                isSelected
+                                  ? 'bg-blue-600 border-blue-600'
+                                  : 'border-gray-300'
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check className="w-3 h-3 text-white" />
+                              )}
                             </div>
-                          </div>
-                        ))}
-                        {projectFiles.length > 100 && (
-                          <div className="p-2 text-center text-xs text-gray-500">
-                            ... and {projectFiles.length - 100} more files
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )
+                  })}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
 
-          {/* Actions */}
-          <div>
-            <div className="bg-white rounded-lg border p-6">
-              <h3 className="font-medium text-gray-900 mb-4">Actions</h3>
+            {/* Manual Files */}
+            {relevantFiles.some(
+              (file) => !aiRecommendedFiles.includes(file.file_path)
+            ) && (
+              <div className="space-y-3 mt-6 pt-6 border-t">
+                <p className="text-sm text-gray-600">
+                  Manually selected files:
+                </p>
+                <div className="space-y-2">
+                  {relevantFiles
+                    .filter(
+                      (file) => !aiRecommendedFiles.includes(file.file_path)
+                    )
+                    .map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <span>{getFileIcon(file.file_path)}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {getFileName(file.file_path)}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {getRelativePath(
+                                file.file_path,
+                                projectPath || ''
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            dispatch(removeSelectedFile(file.file_path))
+                          }
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
-              {/* Analyze Button */}
-              <button
-                onClick={handleAnalyzeFiles}
-                disabled={
-                  !user_prompt || projectFiles.length === 0 || isAnalyzing
-                }
-                className={`w-full mb-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  isAnalyzing || !user_prompt || projectFiles.length === 0
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {isAnalyzing ? (
-                  <span className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Analyzing...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Analyze Relevant Files
-                  </span>
-                )}
-              </button>
-
-              {/* Manual File Selection Button */}
-              <button
-                onClick={handleSelectManualFiles}
-                className="w-full mb-3 px-4 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
-              >
-                <span className="flex items-center justify-center">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Files Manually
-                </span>
-              </button>
-
-              {/* Continue Button */}
+            {/* Continue Button */}
+            <div className="mt-6 pt-6 border-t">
               <button
                 onClick={handleContinue}
                 disabled={relevantFiles.length === 0 || !user_prompt}
-                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
-                  relevantFiles.length === 0 || !user_prompt
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="flex items-center justify-center">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Continue
-                </span>
+                <FileText className="w-4 h-4 inline mr-2" />
+                Continue with {relevantFiles.length} file
+                {relevantFiles.length !== 1 ? 's' : ''}
               </button>
-
-              {/* Status Information */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="text-sm space-y-1">
-                  {projectPath && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Files found:</span>
-                      <span className="font-medium">{projectFiles.length}</span>
-                    </div>
-                  )}
-                  {aiRecommendedFiles.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">AI recommended:</span>
-                      <span className="font-medium">
-                        {aiRecommendedFiles.length}
-                      </span>
-                    </div>
-                  )}
-                  {relevantFiles.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Selected:</span>
-                      <span className="font-medium text-green-600">
-                        {relevantFiles.length}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Help Text */}
-              {!projectPath && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Select a project folder to get started
-                  </p>
-                </div>
-              )}
-
-              {projectPath && projectFiles.length === 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    No supported files found in the selected folder
-                  </p>
-                </div>
-              )}
-
-              {projectFiles.length > 0 && !user_prompt && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Complete Step 1 to analyze relevant files
-                  </p>
-                </div>
-              )}
-
-              {relevantFiles.length === 0 && user_prompt && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500">
-                    Select files to include as context for code generation
-                  </p>
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Help Text */}
+        {!projectPath && (
+          <div className="text-center text-sm text-gray-500">
+            Select a project folder to analyze relevant files for your prompt
+          </div>
+        )}
+
+        {projectPath && projectFiles.length === 0 && (
+          <div className="text-center text-sm text-gray-500">
+            No supported files found in the selected folder
+          </div>
+        )}
+
+        {projectFiles.length > 0 && !user_prompt && (
+          <div className="text-center text-sm text-gray-500">
+            Complete Step 1 to analyze relevant files
+          </div>
+        )}
       </div>
     </div>
   )

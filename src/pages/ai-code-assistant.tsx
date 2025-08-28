@@ -21,7 +21,9 @@ const AICodeAssistant: React.FC = () => {
     error: assessmentError
   } = useAppSelector((state) => state.promptAssessment)
 
-  const { relevantFiles } = useAppSelector((state) => state.relevantFiles)
+  const { relevantFiles, isAnalyzing } = useAppSelector(
+    (state) => state.relevantFiles
+  )
 
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [localUserPrompt, setLocalUserPrompt] = useState<string>('')
@@ -73,6 +75,11 @@ const AICodeAssistant: React.FC = () => {
         title: 'Assessing Your Prompt',
         message: 'AI is analyzing your prompt quality and providing feedback...'
       }
+    } else if (currentStep === 2 && isAnalyzing) {
+      return {
+        title: 'Analyzing Project Files',
+        message: 'AI is identifying relevant files for your project...'
+      }
     }
     return null
   }
@@ -113,7 +120,7 @@ const AICodeAssistant: React.FC = () => {
       {/* Loading Modal */}
       {loadingConfig && (
         <LoadingModal
-          isOpen={isAssessing}
+          isOpen={isAssessing || isAnalyzing}
           title={loadingConfig.title}
           message={loadingConfig.message}
         />

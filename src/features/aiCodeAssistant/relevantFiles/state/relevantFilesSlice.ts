@@ -7,10 +7,22 @@ export interface RelevantFilesRequest {
   project_file_paths: string[]
 }
 
+// Define project structure interface
+export interface ProjectStructure {
+  directories: {
+    [path: string]: {
+      directories?: {
+        [name: string]: ProjectStructure['directories'][string]
+      }
+      files?: string[]
+    }
+  }
+}
+
 export interface RelevantFilesResponse {
   credit_usage: number
   relevant_file_paths: string[]
-  project_structure: any // Keep as any since we don't need to use this data
+  project_structure: ProjectStructure
   tokens_used: number
   remaining_credits: number
 }
@@ -26,6 +38,7 @@ export interface RelevantFilesState {
   projectFiles: string[]
   aiRecommendedFiles: string[] // AI suggested relevant files (file paths only)
   relevantFiles: SelectedFile[] // User selected files with content
+  projectStructure: ProjectStructure | null // Project structure from analysis
   creditUsage: number | null
   remainingCredits: number | null
   isLoading: boolean
@@ -38,6 +51,7 @@ const initialState: RelevantFilesState = {
   projectFiles: [],
   aiRecommendedFiles: [],
   relevantFiles: [],
+  projectStructure: null,
   creditUsage: null,
   remainingCredits: null,
   isLoading: false,
@@ -96,6 +110,7 @@ const relevantFilesSlice = createSlice({
     clearRelevantFiles: (state) => {
       state.aiRecommendedFiles = []
       state.relevantFiles = []
+      state.projectStructure = null
       state.creditUsage = null
       state.remainingCredits = null
       state.error = null
@@ -119,6 +134,7 @@ const relevantFilesSlice = createSlice({
           state.isAnalyzing = false
           state.error = null
           state.aiRecommendedFiles = action.payload.relevant_file_paths
+          state.projectStructure = action.payload.project_structure
           state.creditUsage = action.payload.credit_usage
           state.remainingCredits = action.payload.remaining_credits
         }
@@ -127,6 +143,7 @@ const relevantFilesSlice = createSlice({
         state.isAnalyzing = false
         state.error = (action.payload as string) || 'Analysis failed'
         state.aiRecommendedFiles = []
+        state.projectStructure = null
         state.creditUsage = null
         state.remainingCredits = null
       })
