@@ -7,7 +7,7 @@ import signupReducer from '@/features/auth/state/signupSlice'
 import signinReducer from '@/features/auth/state/signinSlice'
 
 import promptAssessmentReducer from '@/features/aiCodeAssistant/promptRefinement/state/promptAssessmentSlice'
-import relevantFilesReducer from '@/features/aiCodeAssistant/promptClarification/state/relevantFilesSlice'
+import relevantFilesReducer from '@/features/aiCodeAssistant/relevantFiles/state/relevantFilesSlice'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -29,13 +29,11 @@ const composeEnhancers = isDevelopment
 // Create store with conditional configuration
 export const store = configureStore({
   reducer: {
-    
-
     signup: signupReducer,
     signin: signinReducer,
 
     promptAssessment: promptAssessmentReducer,
-    relevantFiles: relevantFilesReducer,
+    relevantFiles: relevantFilesReducer
   },
   devTools: false,
   // Use enhancers callback function for Redux Toolkit compatibility

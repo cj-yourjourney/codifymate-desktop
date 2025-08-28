@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   Step1PromptRefinement,
-  Step2PromptClarification,
+  Step2RelevantFiles,
   Step3CodeGeneration
 } from '@/features/aiCodeAssistant/steps'
 import LoadingModal from '@/shared/components/LoadingModal'
@@ -134,7 +134,7 @@ const AICodeAssistant: React.FC = () => {
         )
       case 2:
         return (
-          <Step2PromptClarification
+          <Step2RelevantFiles
             onGenerateCode={handleGenerateCode}
             isGeneratingCode={isGeneratingCode}
             onReferenceFileAssessment={setReferenceFileAssessment}
