@@ -31,14 +31,14 @@ export interface PromptAssessmentState {
   assessment: AssessmentState | null
   isLoading: boolean
   error: string | null
-  lastPrompt: string | null
+  user_prompt: string | null // Store the current user prompt
 }
 
 const initialState: PromptAssessmentState = {
   assessment: null,
   isLoading: false,
   error: null,
-  lastPrompt: null
+  user_prompt: null // Initialize as null
 }
 
 // Async thunk for assessing prompt
@@ -94,10 +94,14 @@ const promptAssessmentSlice = createSlice({
     clearAssessment: (state) => {
       state.assessment = null
       state.error = null
-      state.lastPrompt = null
+      state.user_prompt = null // Clear user_prompt when clearing assessment
     },
     clearError: (state) => {
       state.error = null
+    },
+    // New action to update user_prompt independently
+    setUserPrompt: (state, action: PayloadAction<string>) => {
+      state.user_prompt = action.payload
     }
   },
   extraReducers: (builder) => {
@@ -105,7 +109,7 @@ const promptAssessmentSlice = createSlice({
       .addCase(assessPrompt.pending, (state, action) => {
         state.isLoading = true
         state.error = null
-        state.lastPrompt = action.meta.arg.user_prompt
+        state.user_prompt = action.meta.arg.user_prompt // Store the user prompt
       })
       .addCase(
         assessPrompt.fulfilled,
@@ -113,15 +117,18 @@ const promptAssessmentSlice = createSlice({
           state.isLoading = false
           state.error = null
           state.assessment = normalizeAssessmentResponse(action.payload)
+          // user_prompt is already set in pending case
         }
       )
       .addCase(assessPrompt.rejected, (state, action) => {
         state.isLoading = false
         state.error = (action.payload as string) || 'Assessment failed'
         state.assessment = null
+        // Keep user_prompt even if assessment fails
       })
   }
 })
 
-export const { clearAssessment, clearError } = promptAssessmentSlice.actions
+export const { clearAssessment, clearError, setUserPrompt } =
+  promptAssessmentSlice.actions
 export default promptAssessmentSlice.reducer

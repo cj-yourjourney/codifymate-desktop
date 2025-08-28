@@ -8,7 +8,7 @@ export const API_ENDPOINTS = {
   REGISTER_USER: `${API_BASE_URL}/api/users/register/`,
   SIGNIN_USER: `${API_BASE_URL}/api/users/token/`,
   REFRESH_TOKEN: `${API_BASE_URL}/api/users/token/refresh/`,
-  USER_DETAIL: `${API_BASE_URL}/api/users/detail/`,
+  AUTH_DETAIL: `${API_BASE_URL}/api/users/auth/`,
   PROMPT_ASSESSMENT: `${API_BASE_URL}/api/prompt-assessment/assess/`
   // Add other endpoints as needed
 } as const
@@ -309,7 +309,7 @@ export const apiClient = {
 
   // Protected endpoints (require auth)
   getUserDetail: (): Promise<UserDetailResponse> =>
-    apiRequest(API_ENDPOINTS.USER_DETAIL, {
+    apiRequest(API_ENDPOINTS.AUTH_DETAIL, {
       method: 'GET'
     }),
 

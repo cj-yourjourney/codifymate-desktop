@@ -4,7 +4,8 @@ import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import {
   assessPrompt,
   clearAssessment,
-  clearError
+  clearError,
+  setUserPrompt
 } from './state/promptAssessmentSlice'
 import type { AssessmentState } from './state/promptAssessmentSlice'
 
@@ -31,7 +32,7 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
     assessment: reduxAssessment,
     isLoading: reduxIsAssessing,
     error,
-    lastPrompt
+    user_prompt: reduxUserPrompt
   } = useAppSelector((state) => state.promptAssessment)
 
   // Use external props if provided, otherwise use local state and Redux
@@ -40,14 +41,30 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
   // Determine which prompt value and setter to use
   const isControlledByParent =
     externalUserPrompt !== undefined && externalSetUserPrompt !== undefined
+
   const userPrompt = isControlledByParent ? externalUserPrompt : localUserPrompt
-  const setUserPrompt = isControlledByParent
-    ? externalSetUserPrompt
-    : setLocalUserPrompt
+
+  const setUserPromptValue = (prompt: string) => {
+    if (isControlledByParent && externalSetUserPrompt) {
+      externalSetUserPrompt(prompt)
+    } else {
+      setLocalUserPrompt(prompt)
+    }
+    // Always update Redux state for consistency
+    dispatch(setUserPrompt(prompt))
+  }
+
   const assessment =
     externalAssessment !== undefined ? externalAssessment : reduxAssessment
   const isAssessing =
     externalIsAssessing !== undefined ? externalIsAssessing : reduxIsAssessing
+
+  // Initialize local state from Redux if not controlled by parent
+  useEffect(() => {
+    if (!isControlledByParent && reduxUserPrompt && !localUserPrompt) {
+      setLocalUserPrompt(reduxUserPrompt)
+    }
+  }, [reduxUserPrompt, isControlledByParent, localUserPrompt])
 
   // Clear error when component mounts or when prompt changes
   useEffect(() => {
@@ -71,7 +88,7 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
     }
 
     // Clear previous assessment if prompt has changed
-    if (lastPrompt && lastPrompt !== userPrompt.trim()) {
+    if (reduxUserPrompt && reduxUserPrompt !== userPrompt.trim()) {
       dispatch(clearAssessment())
     }
 
@@ -169,7 +186,7 @@ const Step1PromptRefinement: React.FC<Step1PromptRefinementProps> = ({
                 className="w-full h-48 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 placeholder="Be specific about functionality, tech stack, UI requirements..."
                 value={userPrompt}
-                onChange={(e) => setUserPrompt(e.target.value)}
+                onChange={(e) => setUserPromptValue(e.target.value)}
               />
             </div>
           </div>

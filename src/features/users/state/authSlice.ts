@@ -46,7 +46,7 @@ export const signin = createAsyncThunk(
 export const fetchUserDetail = createAsyncThunk(
   'auth/fetchUserDetail',
   async () => {
-    const response = await apiRequest(API_ENDPOINTS.USER_DETAIL)
+    const response = await apiRequest(API_ENDPOINTS.AUTH_DETAIL)
     return response
   }
 )
@@ -75,7 +75,7 @@ export const checkAuthStatus = createAsyncThunk(
     const isValid = await tokenStorage.isAccessTokenValid()
     if (isValid) {
       // Fetch user details to confirm authentication
-      const response = await apiRequest(API_ENDPOINTS.USER_DETAIL)
+      const response = await apiRequest(API_ENDPOINTS.AUTH_DETAIL)
       return response
     }
     throw new Error('No valid token')
