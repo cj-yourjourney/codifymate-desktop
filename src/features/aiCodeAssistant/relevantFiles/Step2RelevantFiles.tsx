@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react'
-import { FolderOpen, FileText, BarChart3 } from 'lucide-react'
+import { FolderOpen, FileText, BarChart3, Plus, Check, X } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import {
   analyzeRelevantFiles,
   setProjectPath,
   setProjectFiles,
+  addSelectedFile,
+  removeSelectedFile,
   clearRelevantFiles,
   clearError,
-  resetState
+  resetState,
+  SelectedFile
 } from './state/relevantFilesSlice'
 
-const Step2RelevantFiles: React.FC = () => {
+interface Step2RelevantFilesProps {
+  onContinue?: () => void
+}
+
+const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
+  onContinue
+}) => {
   const dispatch = useAppDispatch()
   const {
     projectPath,
     projectFiles,
+    aiRecommendedFiles,
     relevantFiles,
     creditUsage,
     remainingCredits,
@@ -25,6 +35,9 @@ const Step2RelevantFiles: React.FC = () => {
   const { user_prompt } = useAppSelector((state) => state.promptAssessment)
 
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [isLoadingContent, setIsLoadingContent] = useState<
+    Record<string, boolean>
+  >({})
 
   // Clear error when component mounts
   useEffect(() => {
@@ -54,7 +67,6 @@ const Step2RelevantFiles: React.FC = () => {
       }
     } catch (err) {
       console.error('Error selecting folder:', err)
-      // Error handling could be improved with a proper error state
     } finally {
       setIsLoadingFiles(false)
     }
@@ -72,6 +84,81 @@ const Step2RelevantFiles: React.FC = () => {
     }
 
     dispatch(analyzeRelevantFiles(requestData))
+  }
+
+  // Handle selecting/deselecting AI recommended files
+  const handleToggleAiFile = async (filePath: string) => {
+    const isSelected = relevantFiles.some((file) => file.file_path === filePath)
+
+    if (isSelected) {
+      // Remove file
+      dispatch(removeSelectedFile(filePath))
+    } else {
+      // Add file - need to read content first
+      setIsLoadingContent((prev) => ({ ...prev, [filePath]: true }))
+      try {
+        const content = await window.electronAPI.readFileContent(filePath)
+        const selectedFile: SelectedFile = {
+          file_path: filePath,
+          content: content
+        }
+        dispatch(addSelectedFile(selectedFile))
+      } catch (err) {
+        console.error('Error reading file content:', err)
+      } finally {
+        setIsLoadingContent((prev) => ({ ...prev, [filePath]: false }))
+      }
+    }
+  }
+
+  // Handle manual file selection
+  const handleSelectManualFiles = async () => {
+    try {
+      const selectedFilePaths = await window.electronAPI.selectFiles()
+
+      for (const filePath of selectedFilePaths) {
+        // Check if file is already selected
+        const isAlreadySelected = relevantFiles.some(
+          (file) => file.file_path === filePath
+        )
+        if (!isAlreadySelected) {
+          setIsLoadingContent((prev) => ({ ...prev, [filePath]: true }))
+          try {
+            const content = await window.electronAPI.readFileContent(filePath)
+            const selectedFile: SelectedFile = {
+              file_path: filePath,
+              content: content
+            }
+            dispatch(addSelectedFile(selectedFile))
+          } catch (err) {
+            console.error('Error reading file content:', err)
+          } finally {
+            setIsLoadingContent((prev) => ({ ...prev, [filePath]: false }))
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error selecting files:', err)
+    }
+  }
+
+  // Handle removing selected file
+  const handleRemoveSelectedFile = (filePath: string) => {
+    dispatch(removeSelectedFile(filePath))
+  }
+
+  // Handle continue button
+  const handleContinue = () => {
+    const requestPayload = {
+      user_prompt: user_prompt,
+      relevant_files: relevantFiles
+    }
+
+    console.log('Request Payload for Code Generation:', requestPayload)
+
+    if (onContinue) {
+      onContinue()
+    }
   }
 
   // Reset component state
@@ -127,17 +214,63 @@ const Step2RelevantFiles: React.FC = () => {
                 onClick={() => dispatch(clearError())}
                 className="text-red-500 hover:text-red-700"
               >
-                ×
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Analysis Results */}
+        {/* Selected Files Section */}
         {relevantFiles.length > 0 && (
           <div className="bg-white border rounded-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">Analysis Results</h3>
+              <h3 className="font-medium text-gray-900">Selected Files</h3>
+              <span className="text-sm text-gray-600">
+                {relevantFiles.length} file
+                {relevantFiles.length !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {relevantFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-blue-50 rounded border border-blue-200"
+                >
+                  <div className="flex items-center space-x-3 flex-1">
+                    <span className="text-lg">
+                      {getFileIcon(file.file_path)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-sm font-medium text-gray-900 truncate">
+                        {getFileName(file.file_path)}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {projectPath
+                          ? getRelativePath(file.file_path, projectPath)
+                          : file.file_path}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveSelectedFile(file.file_path)}
+                    className="text-red-500 hover:text-red-700 p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Recommended Files */}
+        {aiRecommendedFiles.length > 0 && (
+          <div className="bg-white border rounded-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-gray-900">
+                AI Recommended Files
+              </h3>
               <div className="flex items-center space-x-4 text-sm">
                 {creditUsage && (
                   <span className="text-gray-600">
@@ -154,26 +287,50 @@ const Step2RelevantFiles: React.FC = () => {
 
             <div className="space-y-2">
               <p className="text-sm text-gray-600 mb-3">
-                Relevant files ({relevantFiles.length}):
+                Select files to include as context ({aiRecommendedFiles.length}{' '}
+                recommended):
               </p>
-              {relevantFiles.map((filePath, index) => (
-                <div
-                  key={index}
-                  className="flex items-center space-x-3 p-2 bg-green-50 rounded border border-green-200"
-                >
-                  <span className="text-lg">{getFileIcon(filePath)}</span>
-                  <div className="flex-1">
-                    <div className="font-mono text-sm font-medium text-gray-900">
-                      {getFileName(filePath)}
+              {aiRecommendedFiles.map((filePath, index) => {
+                const isSelected = relevantFiles.some(
+                  (file) => file.file_path === filePath
+                )
+                const isLoading = isLoadingContent[filePath]
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center justify-between p-3 rounded border cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}
+                    onClick={() => !isLoading && handleToggleAiFile(filePath)}
+                  >
+                    <div className="flex items-center space-x-3 flex-1">
+                      <span className="text-lg">{getFileIcon(filePath)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-sm font-medium text-gray-900 truncate">
+                          {getFileName(filePath)}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {projectPath
+                            ? getRelativePath(filePath, projectPath)
+                            : filePath}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {projectPath
-                        ? getRelativePath(filePath, projectPath)
-                        : filePath}
+                    <div className="flex items-center">
+                      {isLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
+                      ) : isSelected ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <div className="w-4 h-4 border-2 border-gray-300 rounded" />
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -310,35 +467,60 @@ const Step2RelevantFiles: React.FC = () => {
                 )}
               </button>
 
+              {/* Manual File Selection Button */}
+              <button
+                onClick={handleSelectManualFiles}
+                className="w-full mb-3 px-4 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+              >
+                <span className="flex items-center justify-center">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Files Manually
+                </span>
+              </button>
+
               {/* Continue Button */}
-              {relevantFiles.length > 0 && (
-                <button className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
-                  <span className="flex items-center justify-center">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Continue
-                  </span>
-                </button>
-              )}
+              <button
+                onClick={handleContinue}
+                disabled={relevantFiles.length === 0 || !user_prompt}
+                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors ${
+                  relevantFiles.length === 0 || !user_prompt
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                <span className="flex items-center justify-center">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Continue
+                </span>
+              </button>
 
               {/* Status Information */}
-              {projectPath && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-sm space-y-1">
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="text-sm space-y-1">
+                  {projectPath && (
                     <div className="flex justify-between">
                       <span className="text-gray-500">Files found:</span>
                       <span className="font-medium">{projectFiles.length}</span>
                     </div>
-                    {relevantFiles.length > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Relevant:</span>
-                        <span className="font-medium">
-                          {relevantFiles.length}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                  {aiRecommendedFiles.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">AI recommended:</span>
+                      <span className="font-medium">
+                        {aiRecommendedFiles.length}
+                      </span>
+                    </div>
+                  )}
+                  {relevantFiles.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Selected:</span>
+                      <span className="font-medium text-green-600">
+                        {relevantFiles.length}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Help Text */}
               {!projectPath && (
@@ -361,6 +543,14 @@ const Step2RelevantFiles: React.FC = () => {
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <p className="text-xs text-gray-500">
                     Complete Step 1 to analyze relevant files
+                  </p>
+                </div>
+              )}
+
+              {relevantFiles.length === 0 && user_prompt && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    Select files to include as context for code generation
                   </p>
                 </div>
               )}

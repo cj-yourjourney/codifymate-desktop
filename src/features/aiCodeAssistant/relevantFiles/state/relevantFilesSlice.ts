@@ -1,4 +1,3 @@
-// src/store/slices/relevantFilesSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
@@ -16,10 +15,17 @@ export interface RelevantFilesResponse {
   remaining_credits: number
 }
 
+// New interface for selected files with content
+export interface SelectedFile {
+  file_path: string
+  content: string
+}
+
 export interface RelevantFilesState {
   projectPath: string | null
   projectFiles: string[]
-  relevantFiles: string[]
+  aiRecommendedFiles: string[] // AI suggested relevant files (file paths only)
+  relevantFiles: SelectedFile[] // User selected files with content
   creditUsage: number | null
   remainingCredits: number | null
   isLoading: boolean
@@ -30,6 +36,7 @@ export interface RelevantFilesState {
 const initialState: RelevantFilesState = {
   projectPath: null,
   projectFiles: [],
+  aiRecommendedFiles: [],
   relevantFiles: [],
   creditUsage: null,
   remainingCredits: null,
@@ -69,7 +76,25 @@ const relevantFilesSlice = createSlice({
       state.projectFiles = action.payload
       state.error = null
     },
+    addSelectedFile: (state, action: PayloadAction<SelectedFile>) => {
+      // Check if file is already selected
+      const exists = state.relevantFiles.some(
+        (file) => file.file_path === action.payload.file_path
+      )
+      if (!exists) {
+        state.relevantFiles.push(action.payload)
+      }
+    },
+    removeSelectedFile: (state, action: PayloadAction<string>) => {
+      state.relevantFiles = state.relevantFiles.filter(
+        (file) => file.file_path !== action.payload
+      )
+    },
+    clearSelectedFiles: (state) => {
+      state.relevantFiles = []
+    },
     clearRelevantFiles: (state) => {
+      state.aiRecommendedFiles = []
       state.relevantFiles = []
       state.creditUsage = null
       state.remainingCredits = null
@@ -93,7 +118,7 @@ const relevantFilesSlice = createSlice({
         (state, action: PayloadAction<RelevantFilesResponse>) => {
           state.isAnalyzing = false
           state.error = null
-          state.relevantFiles = action.payload.relevant_file_paths
+          state.aiRecommendedFiles = action.payload.relevant_file_paths
           state.creditUsage = action.payload.credit_usage
           state.remainingCredits = action.payload.remaining_credits
         }
@@ -101,7 +126,7 @@ const relevantFilesSlice = createSlice({
       .addCase(analyzeRelevantFiles.rejected, (state, action) => {
         state.isAnalyzing = false
         state.error = (action.payload as string) || 'Analysis failed'
-        state.relevantFiles = []
+        state.aiRecommendedFiles = []
         state.creditUsage = null
         state.remainingCredits = null
       })
@@ -111,6 +136,9 @@ const relevantFilesSlice = createSlice({
 export const {
   setProjectPath,
   setProjectFiles,
+  addSelectedFile,
+  removeSelectedFile,
+  clearSelectedFiles,
   clearRelevantFiles,
   clearError,
   resetState

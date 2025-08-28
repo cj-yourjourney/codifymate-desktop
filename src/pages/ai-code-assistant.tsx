@@ -12,12 +12,6 @@ import {
 } from '@/features/aiCodeAssistant/promptRefinement/state/promptAssessmentSlice'
 import { Edit3, HelpCircle, Code, Check } from 'lucide-react'
 
-// Mock reference file assessment interface for Step2
-interface ReferenceFileAssessment {
-  score: number
-  message: string
-}
-
 const AICodeAssistant: React.FC = () => {
   // Redux state and actions
   const dispatch = useAppDispatch()
@@ -27,11 +21,10 @@ const AICodeAssistant: React.FC = () => {
     error: assessmentError
   } = useAppSelector((state) => state.promptAssessment)
 
+  const { relevantFiles } = useAppSelector((state) => state.relevantFiles)
+
   const [currentStep, setCurrentStep] = useState<number>(1)
   const [localUserPrompt, setLocalUserPrompt] = useState<string>('')
-  const [referenceFileAssessment, setReferenceFileAssessment] =
-    useState<ReferenceFileAssessment | null>(null)
-  const [isGeneratingCode, setIsGeneratingCode] = useState(false)
 
   const steps = [
     { id: 1, title: 'Write Prompt', icon: Edit3 },
@@ -51,25 +44,8 @@ const AICodeAssistant: React.FC = () => {
     }
   }
 
-  const handleGenerateCode = async () => {
-    setIsGeneratingCode(true)
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      if (Math.random() < 0.1) {
-        throw new Error(
-          'Failed to generate code. Please check your connection and try again.'
-        )
-      }
-
-      setCurrentStep(3)
-    } catch (error) {
-      // Handle error if needed
-      console.error('Code generation failed:', error)
-    } finally {
-      setIsGeneratingCode(false)
-    }
+  const handleNavigateToStep3 = () => {
+    setCurrentStep(3)
   }
 
   const handleStepClick = (stepId: number) => {
@@ -85,11 +61,7 @@ const AICodeAssistant: React.FC = () => {
       case 2:
         return localUserPrompt.trim() !== '' && promptAssessment !== null
       case 3:
-        return (
-          (referenceFileAssessment !== null &&
-            referenceFileAssessment.score >= 7) ||
-          currentStep >= 3
-        )
+        return relevantFiles.length > 0 || currentStep >= 3
       default:
         return false
     }
@@ -100,11 +72,6 @@ const AICodeAssistant: React.FC = () => {
       return {
         title: 'Assessing Your Prompt',
         message: 'AI is analyzing your prompt quality and providing feedback...'
-      }
-    } else if (currentStep === 2 && isGeneratingCode) {
-      return {
-        title: 'Generating Code',
-        message: 'AI is creating optimized code based on your requirements...'
       }
     }
     return null
@@ -133,13 +100,7 @@ const AICodeAssistant: React.FC = () => {
           />
         )
       case 2:
-        return (
-          <Step2RelevantFiles
-            onGenerateCode={handleGenerateCode}
-            isGeneratingCode={isGeneratingCode}
-            onReferenceFileAssessment={setReferenceFileAssessment}
-          />
-        )
+        return <Step2RelevantFiles onContinue={handleNavigateToStep3} />
       case 3:
         return <Step3CodeGeneration />
       default:
@@ -152,7 +113,7 @@ const AICodeAssistant: React.FC = () => {
       {/* Loading Modal */}
       {loadingConfig && (
         <LoadingModal
-          isOpen={isAssessing || isGeneratingCode}
+          isOpen={isAssessing}
           title={loadingConfig.title}
           message={loadingConfig.message}
         />
@@ -161,8 +122,6 @@ const AICodeAssistant: React.FC = () => {
       {/* Minimal Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-8">
-          {/* App Title */}
-
           {/* Simple Step Navigation */}
           <div className="flex justify-center items-center space-x-8">
             {steps.map((step, index) => {
