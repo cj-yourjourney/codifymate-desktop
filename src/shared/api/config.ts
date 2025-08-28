@@ -9,7 +9,8 @@ export const API_ENDPOINTS = {
   SIGNIN_USER: `${API_BASE_URL}/api/users/token/`,
   REFRESH_TOKEN: `${API_BASE_URL}/api/users/token/refresh/`,
   AUTH_DETAIL: `${API_BASE_URL}/api/users/auth/`,
-  PROMPT_ASSESSMENT: `${API_BASE_URL}/api/prompt-assessment/assess/`
+  PROMPT_ASSESSMENT: `${API_BASE_URL}/api/prompt-assessment/assess/`,
+  RELEVANT_FILES_ANALYZE: `${API_BASE_URL}/api/relevant-files/analyze/`
   // Add other endpoints as needed
 } as const
 
