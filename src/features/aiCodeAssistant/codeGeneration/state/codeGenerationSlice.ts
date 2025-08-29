@@ -3,7 +3,7 @@ import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
 // Types for the API request and response
 export interface CodeGenerationRequest {
-  user_prompt: string
+  user_prompt: string | null 
   relevant_files: Array<{
     file_path: string
     content: string
@@ -52,6 +52,7 @@ export interface CodeGenerationResponse {
 export interface CodeVersion {
   id: string
   version: string
+  versionNumber: number // Add version number for easier sorting
   timestamp: string
   refinement_prompt?: string
   generated_code: GeneratedCode
@@ -168,9 +169,11 @@ const codeGenerationSlice = createSlice({
           state.isGenerating = false
           state.error = null
 
+          const nextVersionNumber = state.versions.length + 1
           const newVersion: CodeVersion = {
-            id: `v${state.versions.length + 1}`,
-            version: `Version ${state.versions.length + 1}`,
+            id: `v${nextVersionNumber}`,
+            version: `Version ${nextVersionNumber}`,
+            versionNumber: nextVersionNumber,
             timestamp: new Date().toISOString(),
             generated_code: action.payload.generated_code,
             credits_used: action.payload.credits_used,
@@ -203,9 +206,11 @@ const codeGenerationSlice = createSlice({
           state.isRefining = false
           state.error = null
 
+          const nextVersionNumber = state.versions.length + 1
           const newVersion: CodeVersion = {
-            id: `v${state.versions.length + 1}`,
-            version: `Version ${state.versions.length + 1}`,
+            id: `v${nextVersionNumber}`,
+            version: `Version ${nextVersionNumber}`,
+            versionNumber: nextVersionNumber,
             timestamp: new Date().toISOString(),
             refinement_prompt: action.payload.refinement_prompt,
             generated_code: action.payload.generated_code,

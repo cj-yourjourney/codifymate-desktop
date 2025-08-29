@@ -34,6 +34,11 @@ const Step3CodeGeneration = () => {
     versions.find((v) => v.id === currentVersionId) ||
     versions[versions.length - 1]
 
+  // Sort versions by version number in descending order (latest first)
+  const sortedVersions = [...versions].sort(
+    (a, b) => b.versionNumber - a.versionNumber
+  )
+
   const handleRefine = async () => {
     if (!refinePrompt.trim()) {
       showNotification('Please enter refinement instructions', 'error')
@@ -174,9 +179,9 @@ const Step3CodeGeneration = () => {
                   value={currentVersionId || ''}
                   onChange={(e) => dispatch(setCurrentVersion(e.target.value))}
                 >
-                  {versions.map((version, index) => (
+                  {sortedVersions.map((version) => (
                     <option key={version.id} value={version.id}>
-                      v{versions.length - index}
+                      v{version.versionNumber}
                       {version.refinement_prompt ? ' (refined)' : ''}
                     </option>
                   ))}

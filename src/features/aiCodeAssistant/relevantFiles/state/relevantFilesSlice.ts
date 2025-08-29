@@ -3,7 +3,7 @@ import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
 // Types for the API request and response
 export interface RelevantFilesRequest {
-  user_prompts: string
+  user_prompts: string | null 
   project_file_paths: string[]
 }
 
