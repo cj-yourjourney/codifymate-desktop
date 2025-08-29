@@ -3,14 +3,15 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export const API_ENDPOINTS = {
-  GENERATE_CODE: `${API_BASE_URL}/api/prompt/generate-code/`,
+  // GENERATE_CODE: `${API_BASE_URL}/api/prompt/generate-code/`,
   REFINE_CODE: `${API_BASE_URL}/api/prompt/refine-code/`,
   REGISTER_USER: `${API_BASE_URL}/api/users/register/`,
   SIGNIN_USER: `${API_BASE_URL}/api/users/token/`,
   REFRESH_TOKEN: `${API_BASE_URL}/api/users/token/refresh/`,
   AUTH_DETAIL: `${API_BASE_URL}/api/users/auth/`,
   PROMPT_ASSESSMENT: `${API_BASE_URL}/api/prompt-assessment/assess/`,
-  RELEVANT_FILES_ANALYZE: `${API_BASE_URL}/api/relevant-files/analyze/`
+  RELEVANT_FILES_ANALYZE: `${API_BASE_URL}/api/relevant-files/analyze/`,
+  GENERATE_CODE: `${API_BASE_URL}/api/code/generate/`,
   // Add other endpoints as needed
 } as const
 

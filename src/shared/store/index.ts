@@ -8,6 +8,7 @@ import signinReducer from '@/features/auth/state/signinSlice'
 
 import promptAssessmentReducer from '@/features/aiCodeAssistant/promptRefinement/state/promptAssessmentSlice'
 import relevantFilesReducer from '@/features/aiCodeAssistant/relevantFiles/state/relevantFilesSlice'
+import codeGenerationReducer from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -33,7 +34,8 @@ export const store = configureStore({
     signin: signinReducer,
 
     promptAssessment: promptAssessmentReducer,
-    relevantFiles: relevantFilesReducer
+    relevantFiles: relevantFilesReducer,
+    codeGeneration: codeGenerationReducer, // Add this line
   },
   devTools: false,
   // Use enhancers callback function for Redux Toolkit compatibility

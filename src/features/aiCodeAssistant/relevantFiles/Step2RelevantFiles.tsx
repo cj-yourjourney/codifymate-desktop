@@ -11,6 +11,7 @@ import {
   clearError,
   resetState
 } from './state/relevantFilesSlice'
+import { generateCode } from '@/features/aiCodeAssistant/codeGeneration/state/codeGenerationSlice'
 
 interface Step2RelevantFilesProps {
   onContinue?: () => void
@@ -30,6 +31,7 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
   } = useAppSelector((state) => state.relevantFiles)
 
   const { user_prompt } = useAppSelector((state) => state.promptAssessment)
+  const { isGenerating } = useAppSelector((state) => state.codeGeneration)
   const [loading, setLoading] = useState('')
 
   useEffect(() => {
@@ -93,11 +95,18 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
   }
 
   const handleContinue = () => {
-    console.log('Request Payload:', {
+    const requestPayload = {
       user_prompt,
       relevant_files: relevantFiles,
-      project_structure: projectStructure
-    })
+      project_structure: projectStructure || { directories: {} }
+    }
+
+    console.log('Request Payload:', requestPayload)
+
+    // Dispatch the generateCode action
+    dispatch(generateCode(requestPayload))
+
+    // Navigate to Step 3
     onContinue?.()
   }
 
@@ -216,9 +225,12 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
             {relevantFiles.length > 0 && (
               <button
                 onClick={handleContinue}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                disabled={isGenerating}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
               >
-                Continue ({relevantFiles.length})
+                {isGenerating
+                  ? 'Generating...'
+                  : `Continue (${relevantFiles.length})`}
               </button>
             )}
           </>

@@ -18,6 +18,10 @@ const AICodeAssistant: React.FC = () => {
     (state) => state.relevantFiles
   )
 
+  const { versions, isGenerating, isRefining } = useAppSelector(
+    (state) => state.codeGeneration
+  )
+
   const [currentStep, setCurrentStep] = useState(1)
   const [userPrompt, setUserPrompt] = useState('')
 
@@ -40,7 +44,9 @@ const AICodeAssistant: React.FC = () => {
       case 2:
         return userPrompt.trim() && promptAssessment !== null
       case 3:
-        return relevantFiles.length > 0 || currentStep >= 3
+        return (
+          relevantFiles.length > 0 || versions.length > 0 || currentStep >= 3
+        )
       default:
         return false
     }
@@ -57,12 +63,22 @@ const AICodeAssistant: React.FC = () => {
     if (isAssessing)
       return {
         title: 'Assessing Prompt',
-        message: 'Analyzing prompt quality...'
+        message: 'Analyzing prompt quality and requirements...'
       }
     if (isAnalyzing)
       return {
         title: 'Analyzing Files',
-        message: 'Identifying relevant files...'
+        message: 'Identifying relevant files for your project...'
+      }
+    if (isGenerating)
+      return {
+        title: 'Generating Code',
+        message: 'Creating code based on your requirements...'
+      }
+    if (isRefining)
+      return {
+        title: 'Refining Code',
+        message: 'Improving the generated code...'
       }
     return null
   }
@@ -95,7 +111,7 @@ const AICodeAssistant: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {loadingConfig && (
         <LoadingModal
-          isOpen={isAssessing || isAnalyzing}
+          isOpen={isAssessing || isAnalyzing || isGenerating || isRefining}
           title={loadingConfig.title}
           message={loadingConfig.message}
         />
