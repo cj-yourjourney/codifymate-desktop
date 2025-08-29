@@ -1,5 +1,3 @@
-//codeGenerationSlice.ts
-
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
@@ -98,29 +96,41 @@ export const generateCode = createAsyncThunk(
   }
 )
 
-// Async thunk for refining code (placeholder for future implementation)
+// Request interface for code refinement
+export interface CodeRefinementRequest {
+  current_version: {
+    id: string
+    version: string
+    explanation: string
+    files_to_modify: GeneratedFile[]
+    additional_notes?: string
+  }
+  refinement_feedback: string
+  project_structure: {
+    directories: {
+      [path: string]: {
+        directories?: {
+          [name: string]: any
+        }
+        files?: string[]
+      }
+    }
+  }
+}
+
+// Async thunk for refining code
 export const refineCode = createAsyncThunk(
   'codeGeneration/refine',
-  async (
-    {
-      refinementPrompt,
-      currentCode
-    }: { refinementPrompt: string; currentCode: GeneratedCode },
-    { rejectWithValue }
-  ) => {
+  async (requestData: CodeRefinementRequest, { rejectWithValue }) => {
     try {
-      // TODO: Replace with actual refine endpoint when available
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const response = await apiRequest(API_ENDPOINTS.REFINE_CODE, {
+        method: 'POST',
+        body: JSON.stringify(requestData)
+      })
 
-      // Mock response for now
       return {
-        success: true,
-        generated_code: currentCode, // Return same code for now
-        credits_used: '1',
-        remaining_credits: '153.67',
-        token_usage: 50,
-        model_used: 'gpt-5-nano-2025-08-07',
-        refinement_prompt: refinementPrompt
+        ...response,
+        refinement_prompt: requestData.refinement_feedback
       } as CodeGenerationResponse & { refinement_prompt: string }
     } catch (error) {
       return rejectWithValue(
