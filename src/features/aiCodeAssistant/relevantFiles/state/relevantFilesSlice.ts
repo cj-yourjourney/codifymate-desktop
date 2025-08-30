@@ -3,7 +3,7 @@ import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
 // Types for the API request and response
 export interface RelevantFilesRequest {
-  user_prompts: string | null 
+  user_prompts: string | null
   project_file_paths: string[]
 }
 
@@ -124,13 +124,29 @@ const relevantFilesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(analyzeRelevantFiles.pending, (state) => {
+      .addCase(analyzeRelevantFiles.pending, (state, action) => {
+        console.log('⏳ Analysis State: PENDING', {
+          projectFilesCount: action.meta.arg.project_file_paths.length,
+          userPromptExists: !!action.meta.arg.user_prompts,
+          userPromptContent: action.meta.arg.user_prompts, // Full text content
+          previousRecommendations: state.aiRecommendedFiles.length
+        })
         state.isAnalyzing = true
         state.error = null
       })
       .addCase(
         analyzeRelevantFiles.fulfilled,
         (state, action: PayloadAction<RelevantFilesResponse>) => {
+          console.log('✅ Analysis State: FULFILLED', {
+            relevantFilesFound: action.payload.relevant_file_paths.length,
+            creditUsage: action.payload.credit_usage,
+            tokensUsed: action.payload.tokens_used,
+            remainingCredits: action.payload.remaining_credits,
+            projectStructureKeys: Object.keys(
+              action.payload.project_structure.directories
+            ).length
+          })
+
           state.isAnalyzing = false
           state.error = null
           state.aiRecommendedFiles = action.payload.relevant_file_paths
@@ -140,6 +156,11 @@ const relevantFilesSlice = createSlice({
         }
       )
       .addCase(analyzeRelevantFiles.rejected, (state, action) => {
+        console.log('❌ Analysis State: REJECTED', {
+          error: action.payload,
+          projectFilesCount: state.projectFiles.length
+        })
+
         state.isAnalyzing = false
         state.error = (action.payload as string) || 'Analysis failed'
         state.aiRecommendedFiles = []

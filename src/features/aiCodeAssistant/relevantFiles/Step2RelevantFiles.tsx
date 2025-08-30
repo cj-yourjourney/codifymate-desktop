@@ -57,12 +57,19 @@ const Step2RelevantFiles: React.FC<Step2RelevantFilesProps> = ({
   }
 
   const handleAnalyze = () => {
-    dispatch(
-      analyzeRelevantFiles({
-        user_prompts: user_prompt,
-        project_file_paths: projectFiles
-      })
-    )
+    const requestData = {
+      user_prompts: user_prompt,
+      project_file_paths: projectFiles
+    }
+
+    console.log('🔍 Analyze button clicked - Request data:', requestData)
+    console.log('📊 Summary:', {
+      userPromptLength: user_prompt?.length || 0,
+      projectFilesCount: projectFiles.length,
+      sampleFiles: projectFiles.slice(0, 3)
+    })
+
+    dispatch(analyzeRelevantFiles(requestData))
   }
 
   const handleToggle = async (filePath: string) => {

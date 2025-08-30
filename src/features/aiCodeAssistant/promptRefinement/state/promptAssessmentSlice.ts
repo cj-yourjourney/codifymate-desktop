@@ -46,6 +46,11 @@ export const assessPrompt = createAsyncThunk(
   'promptAssessment/assess',
   async (requestData: PromptAssessmentRequest, { rejectWithValue }) => {
     try {
+      // Log the request data
+      // console.log('📤 Backend Request Data:', requestData)
+      // console.log('📤 Request URL:', API_ENDPOINTS.PROMPT_ASSESSMENT)
+
+
       const response = await apiRequest(API_ENDPOINTS.PROMPT_ASSESSMENT, {
         method: 'POST',
         body: JSON.stringify(requestData)
@@ -107,6 +112,7 @@ const promptAssessmentSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(assessPrompt.pending, (state, action) => {
+        console.log('⏳ Assessment started with data:', action.meta.arg)
         state.isLoading = true
         state.error = null
         state.user_prompt = action.meta.arg.user_prompt // Store the user prompt
@@ -114,6 +120,7 @@ const promptAssessmentSlice = createSlice({
       .addCase(
         assessPrompt.fulfilled,
         (state, action: PayloadAction<PromptAssessmentResponse>) => {
+          console.log('✅ Assessment completed:', action.payload)
           state.isLoading = false
           state.error = null
           state.assessment = normalizeAssessmentResponse(action.payload)
@@ -121,6 +128,7 @@ const promptAssessmentSlice = createSlice({
         }
       )
       .addCase(assessPrompt.rejected, (state, action) => {
+        console.log('❌ Assessment failed:', action.payload)
         state.isLoading = false
         state.error = (action.payload as string) || 'Assessment failed'
         state.assessment = null

@@ -3,7 +3,7 @@ import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
 // Types for the API request and response
 export interface CodeGenerationRequest {
-  user_prompt: string | null 
+  user_prompt: string | null
   relevant_files: Array<{
     file_path: string
     content: string
@@ -83,6 +83,9 @@ export const generateCode = createAsyncThunk(
   'codeGeneration/generate',
   async (requestData: CodeGenerationRequest, { rejectWithValue }) => {
     try {
+      // Log the full request payload
+      console.log('📦 Full Request Payload:', requestData)
+
       const response = await apiRequest(API_ENDPOINTS.GENERATE_CODE, {
         method: 'POST',
         body: JSON.stringify(requestData)
@@ -124,6 +127,9 @@ export const refineCode = createAsyncThunk(
   'codeGeneration/refine',
   async (requestData: CodeRefinementRequest, { rejectWithValue }) => {
     try {
+      // Log the full refinement payload
+      console.log('📦 Full Refinement Payload:', requestData)
+
       const response = await apiRequest(API_ENDPOINTS.REFINE_CODE, {
         method: 'POST',
         body: JSON.stringify(requestData)
@@ -166,9 +172,6 @@ const codeGenerationSlice = createSlice({
       .addCase(
         generateCode.fulfilled,
         (state, action: PayloadAction<CodeGenerationResponse>) => {
-          state.isGenerating = false
-          state.error = null
-
           const nextVersionNumber = state.versions.length + 1
           const newVersion: CodeVersion = {
             id: `v${nextVersionNumber}`,
@@ -182,6 +185,22 @@ const codeGenerationSlice = createSlice({
             model_used: action.payload.model_used
           }
 
+          console.log('✅ Code Generation State: FULFILLED', {
+            success: action.payload.success,
+            newVersionId: newVersion.id,
+            creditsUsed: action.payload.credits_used,
+            remainingCredits: action.payload.remaining_credits,
+            tokenUsage: action.payload.token_usage,
+            modelUsed: action.payload.model_used,
+            filesToModifyCount:
+              action.payload.generated_code?.files_to_modify?.length || 0,
+            explanationLength:
+              action.payload.generated_code?.explanation?.length || 0,
+            totalVersions: state.versions.length + 1
+          })
+
+          state.isGenerating = false
+          state.error = null
           state.versions.push(newVersion)
           state.currentVersionId = newVersion.id
         }
@@ -203,9 +222,6 @@ const codeGenerationSlice = createSlice({
             CodeGenerationResponse & { refinement_prompt: string }
           >
         ) => {
-          state.isRefining = false
-          state.error = null
-
           const nextVersionNumber = state.versions.length + 1
           const newVersion: CodeVersion = {
             id: `v${nextVersionNumber}`,
@@ -220,6 +236,23 @@ const codeGenerationSlice = createSlice({
             model_used: action.payload.model_used
           }
 
+          console.log('✅ Code Refinement State: FULFILLED', {
+            success: action.payload.success,
+            newVersionId: newVersion.id,
+            refinementPrompt: action.payload.refinement_prompt,
+            creditsUsed: action.payload.credits_used,
+            remainingCredits: action.payload.remaining_credits,
+            tokenUsage: action.payload.token_usage,
+            modelUsed: action.payload.model_used,
+            filesToModifyCount:
+              action.payload.generated_code?.files_to_modify?.length || 0,
+            explanationLength:
+              action.payload.generated_code?.explanation?.length || 0,
+            totalVersions: state.versions.length + 1
+          })
+
+          state.isRefining = false
+          state.error = null
           state.versions.push(newVersion)
           state.currentVersionId = newVersion.id
         }
