@@ -118,7 +118,7 @@ const relevantFilesSlice = createSlice({
     clearError: (state) => {
       state.error = null
     },
-    resetState: (state) => {
+    resetState: () => {
       return initialState
     }
   },

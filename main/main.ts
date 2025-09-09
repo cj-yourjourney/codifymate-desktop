@@ -1,7 +1,6 @@
-//  main.ts - Main entry point
+//  main.ts - Main entry point (updated)
 import { app, BrowserWindow, protocol } from 'electron'
 import { setupAutoUpdater } from './services/auto-updater'
-
 import { setupMenu } from './services/menu'
 import { setupIpcHandlers } from './services/ipc-handlers'
 import { initializeTokenStore } from './services/token-storage'
@@ -45,10 +44,13 @@ const createWindow = (): BrowserWindow => {
 }
 
 app.whenReady().then(() => {
-  protocol.registerFileProtocol('file', (request, callback) => {
-    const pathname = decodeURI(request.url.replace('file:///', ''))
-    callback(pathname)
-  })
+  // Register file protocol for production
+  if (!isDev) {
+    protocol.registerFileProtocol('file', (request, callback) => {
+      const pathname = decodeURI(request.url.replace('file:///', ''))
+      callback(pathname)
+    })
+  }
 
   createWindow()
   setupIpcHandlers()
@@ -65,5 +67,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-

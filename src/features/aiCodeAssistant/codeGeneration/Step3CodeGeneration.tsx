@@ -86,12 +86,12 @@ const Step3CodeGeneration = () => {
     try {
       await navigator.clipboard.writeText(text)
       showNotification('Copied to clipboard', 'success')
-    } catch (err) {
+    } catch {
       showNotification('Failed to copy', 'error')
     }
   }
 
-  const downloadFile = (file: any) => {
+  const downloadFile = (file: { code: string; file_path: string }) => {
     const blob = new Blob([file.code], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

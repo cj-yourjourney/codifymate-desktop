@@ -41,9 +41,9 @@ const SignInForm: React.FC = () => {
 
   // Redirect to dashboard if authenticated
   useEffect(() => {
-    // if (isAuthenticated) {
-    //   router.push('/dashboard')
-    // }
+    if (isAuthenticated) {
+      router.push('/ai-code-assistant')
+    }
   }, [isAuthenticated, router])
 
   // Clear general errors when component unmounts or when starting a new sign in

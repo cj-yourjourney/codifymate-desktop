@@ -8,8 +8,15 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  assetPrefix: isProd ? './' : undefined, // ✅ Relative paths for Electron
-  basePath: ''
+  assetPrefix: isProd ? './' : undefined,
+  basePath: '',
+  // Add this for Electron production builds
+  ...(isProd && {
+    // Use hash router for production Electron builds
+    experimental: {
+      appDir: false
+    }
+  })
 }
 
 module.exports = nextConfig

@@ -1,14 +1,18 @@
 // src/components/layout/Navbar.tsx
 import React from 'react'
 import { useAuth } from './AuthContext'
+import { useRouter } from 'next/router'
+
 
 const Navbar: React.FC = () => {
   const { user, loading, error, logout } = useAuth()
+  const router = useRouter()
 
   const handleLogout = async () => {
     try {
       await logout()
       // You might want to redirect to login page here
+      router.push('/')
       console.log('User logged out successfully')
     } catch (err) {
       console.error('Logout failed:', err)

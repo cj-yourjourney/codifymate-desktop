@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Code2 } from 'lucide-react'
 
 export default function Home() {
   const [appVersion, setAppVersion] = useState<string>('')
-  
-  console.log('API BASE URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
-
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.electronAPI) {
@@ -14,36 +12,43 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <div className="max-w-2xl mx-auto p-6">
-        <h1 className="text-4xl font-bold text-center text-primary mb-8">
-          CodifyMate
-        </h1>
-
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body items-center text-center">
-           
-            <p className="text-base-content">
-              Version: {appVersion || 'Loading...'}
-            </p>
-
-            <div className="flex flex-col gap-4 mt-4 w-full">
-              <Link href="/sign-in" className="btn btn-primary w-full">
-                Login
-              </Link>
-            </div>
-            <div className="flex flex-col gap-4 mt-4 w-full">
-              <Link href="/sign-up" className="btn btn-primary w-full">
-                Sign Up
-              </Link>
-              </div>
-            <div className="flex flex-col gap-4 mt-4 w-full">
-              <Link href="/ai-code-assistant" className="btn btn-accent w-full">
-                AI Code Assistant
-              </Link>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 flex items-center justify-center">
+      <div className="max-w-md mx-auto p-8 text-center">
+        {/* Logo */}
+        <div className="mb-16">
+          <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-8">
+            <Code2 className="w-8 h-8 text-primary" />
           </div>
+          <h1 className="text-4xl font-bold text-base-content mb-6">
+            CodifyMate
+          </h1>
+          <p className="text-base-content/60">
+            AI Code Assistant for Frontend Developers
+          </p>
         </div>
+
+        {/* Action Buttons */}
+        <div className="space-y-3 mb-8">
+          <Link
+            href="/sign-up"
+            className="btn btn-primary w-full shadow-sm hover:shadow-md transition-shadow"
+          >
+            Sign Up
+          </Link>
+          <Link
+            href="/sign-in"
+            className="btn btn-outline w-full hover:shadow-sm transition-shadow"
+          >
+            Sign In
+          </Link>
+        </div>
+
+        {/* Version Info */}
+        {appVersion && (
+          <div className="text-xs text-base-content/40 bg-base-200 px-3 py-1 rounded-full inline-block">
+            v{appVersion}
+          </div>
+        )}
       </div>
     </div>
   )

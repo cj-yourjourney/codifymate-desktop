@@ -1,7 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { apiRequest, API_ENDPOINTS } from '@/shared/api/config'
 
-// Types for the API request and response
+
+// Create a proper type for the directory structure
+interface DirectoryStructure {
+  directories?: {
+    [name: string]: DirectoryStructure
+  }
+  files?: string[]
+}
+
+
+// Also update CodeGenerationRequest to be consistent
 export interface CodeGenerationRequest {
   user_prompt: string | null
   relevant_files: Array<{
@@ -12,7 +22,7 @@ export interface CodeGenerationRequest {
     directories: {
       [path: string]: {
         directories?: {
-          [name: string]: any
+          [name: string]: DirectoryStructure
         }
         files?: string[]
       }
@@ -114,13 +124,14 @@ export interface CodeRefinementRequest {
     directories: {
       [path: string]: {
         directories?: {
-          [name: string]: any
+          [name: string]: DirectoryStructure
         }
         files?: string[]
       }
     }
   }
 }
+
 
 // Async thunk for refining code
 export const refineCode = createAsyncThunk(
@@ -158,7 +169,7 @@ const codeGenerationSlice = createSlice({
     clearError: (state) => {
       state.error = null
     },
-    resetState: (state) => {
+    resetState: () => {
       return initialState
     }
   },
@@ -205,10 +216,11 @@ const codeGenerationSlice = createSlice({
           state.currentVersionId = newVersion.id
         }
       )
-      .addCase(generateCode.rejected, (state, action) => {
-        state.isGenerating = false
-        state.error = (action.payload as string) || 'Code generation failed'
-      })
+      .addCase(generateCode.rejected, (_, action) => ({
+        ...initialState,
+        isGenerating: false,
+        error: (action.payload as string) || 'Code generation failed'
+      }))
       // Refine code cases
       .addCase(refineCode.pending, (state) => {
         state.isRefining = true
@@ -257,10 +269,11 @@ const codeGenerationSlice = createSlice({
           state.currentVersionId = newVersion.id
         }
       )
-      .addCase(refineCode.rejected, (state, action) => {
-        state.isRefining = false
-        state.error = (action.payload as string) || 'Code refinement failed'
-      })
+      .addCase(refineCode.rejected, (_, action) => ({
+        ...initialState,
+        isRefining: false,
+        error: (action.payload as string) || 'Code refinement failed'
+      }))
   }
 })
 
