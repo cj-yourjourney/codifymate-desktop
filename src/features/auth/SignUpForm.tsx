@@ -1,4 +1,4 @@
-// components/SignUpForm.tsx
+// components/SignUpForm.tsx (updated with AuthContext refresh)
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { AlertCircle } from 'lucide-react'
 import {
@@ -8,6 +8,7 @@ import {
 } from './state/signupSlice'
 import { useRouter } from 'next/router'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
+import { useAuth } from '@/shared/components/AuthContext' // Add this import
 import type { RegisterUserData } from './state/signupSlice'
 
 interface ValidationErrors {
@@ -21,6 +22,7 @@ interface ValidationErrors {
 const SignUpForm: React.FC = () => {
   const dispatch = useAppDispatch()
   const router = useRouter()
+  const { refreshUser } = useAuth() // Add this to refresh AuthContext
 
   const { isLoading, error, isRegistered } = useAppSelector(
     (state) => state.signup
@@ -38,7 +40,7 @@ const SignUpForm: React.FC = () => {
 
   useEffect(() => {
     if (isRegistered) {
-      // Redirect to login or dashboard after successful registration
+      // Redirect to dashboard after successful registration
       window.location.hash = '#/ai-code-assistant'
       console.log('Registration successful! Tokens stored in secure storage.')
     }
@@ -116,9 +118,11 @@ const SignUpForm: React.FC = () => {
     // Dispatch registration action
     const result = await dispatch(registerUser(formData))
 
-    // Handle the result if needed for additional UI feedback
+    // Handle the result
     if (registerUser.fulfilled.match(result)) {
       console.log('Registration successful')
+      // Refresh the AuthContext to update the Navbar
+      await refreshUser()
       // Navigation will happen automatically via useEffect
     } else if (registerUser.rejected.match(result)) {
       console.log('Registration failed:', result.payload)

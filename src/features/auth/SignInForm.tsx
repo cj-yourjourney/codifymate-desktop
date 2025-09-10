@@ -1,8 +1,9 @@
-// components/SignInForm.tsx (updated with Redux)
+// components/SignInForm.tsx (updated with AuthContext refresh)
 import { useState, ChangeEvent, FormEvent, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { AlertCircle } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
+import { useAuth } from '@/shared/components/AuthContext' // Add this import
 import {
   signIn,
   selectIsLoading,
@@ -10,10 +11,10 @@ import {
   selectIsAuthenticated,
   clearError,
   clearFieldError
-} from './state/signinSlice' // Updated import path
+} from './state/signinSlice'
 
 interface SignInUserData {
-  username: string // Changed from email to username to match API
+  username: string
   password: string
 }
 
@@ -25,6 +26,7 @@ interface ValidationErrors {
 const SignInForm: React.FC = () => {
   const dispatch = useAppDispatch()
   const router = useRouter()
+  const { refreshUser } = useAuth() // Add this to refresh AuthContext
 
   // Redux state
   const isLoading = useAppSelector(selectIsLoading)
@@ -88,7 +90,7 @@ const SignInForm: React.FC = () => {
     return errors
   }
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormForm>) => {
     e.preventDefault()
 
     const errors = validateForm()
@@ -104,9 +106,11 @@ const SignInForm: React.FC = () => {
     // Dispatch sign in action
     const result = await dispatch(signIn(formData))
 
-    // Handle the result if needed for additional UI feedback
+    // Handle the result
     if (signIn.fulfilled.match(result)) {
       console.log('Sign in successful')
+      // Refresh the AuthContext to update the Navbar
+      await refreshUser()
       // Navigation will happen automatically via useEffect
     } else if (signIn.rejected.match(result)) {
       console.log('Sign in failed:', result.payload)

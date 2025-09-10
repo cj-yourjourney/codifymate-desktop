@@ -1,18 +1,15 @@
 // src/components/layout/Navbar.tsx
 import React from 'react'
 import { useAuth } from './AuthContext'
-import { useRouter } from 'next/router'
-
 
 const Navbar: React.FC = () => {
-  const { user, loading, error, logout } = useAuth()
-  const router = useRouter()
+  const { user, loading, logout } = useAuth()
 
   const handleLogout = async () => {
     try {
       await logout()
-      // You might want to redirect to login page here
-      router.push('/')
+      // Navigate to sign-in page using hash routing
+      window.location.hash = '#/'
       console.log('User logged out successfully')
     } catch (err) {
       console.error('Logout failed:', err)
@@ -27,23 +24,13 @@ const Navbar: React.FC = () => {
         </a>
       </div>
       <div className="navbar-center">
-        {user && (
-          <div className="flex items-center gap-1 bg-primary/10 px-4 py-2 rounded-full">
-            <span className="text-primary font-semibold">
-              {user.credits} Credits
-            </span>
-          </div>
-        )}
+        {/* Empty center section - credits removed */}
       </div>
       <div className="navbar-end">
         {loading ? (
           <div className="flex items-center gap-2">
             <span className="loading loading-spinner loading-sm"></span>
             <span className="text-sm">Loading...</span>
-          </div>
-        ) : error ? (
-          <div className="flex items-center gap-2">
-            <span className="text-error text-sm">Auth Error</span>
           </div>
         ) : user ? (
           <div className="flex items-center gap-3">
@@ -68,11 +55,7 @@ const Navbar: React.FC = () => {
               </ul>
             </div>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-sm">Not logged in</span>
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   )
