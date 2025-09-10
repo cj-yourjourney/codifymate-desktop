@@ -9,6 +9,7 @@ import {
 import { useRouter } from 'next/router'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import { useAuth } from '@/shared/components/AuthContext' // Add this import
+import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
 import type { RegisterUserData } from './state/signupSlice'
 
 interface ValidationErrors {
@@ -40,8 +41,8 @@ const SignUpForm: React.FC = () => {
 
   useEffect(() => {
     if (isRegistered) {
-      // Redirect to dashboard after successful registration
-      window.location.hash = '#/ai-code-assistant'
+      // Navigate to AI assistant after successful registration
+      navigateTo(ROUTES.AI_CODE_ASSISTANT)
       console.log('Registration successful! Tokens stored in secure storage.')
     }
   }, [isRegistered, router])

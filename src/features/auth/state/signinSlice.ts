@@ -156,6 +156,12 @@ const signinSlice = createSlice({
         delete newError[field]
         state.error = Object.keys(newError).length > 0 ? newError : null
       }
+    },
+    // ADD THIS RESETAUTH ACTION HERE
+    resetAuth: (state) => {
+      state.isAuthenticated = false
+      state.error = null
+      state.isLoading = false
     }
   },
   extraReducers: (builder) => {
@@ -207,7 +213,8 @@ const signinSlice = createSlice({
   }
 })
 
-export const { clearError, clearFieldError } = signinSlice.actions
+// UPDATE THE EXPORT TO INCLUDE RESETAUTH
+export const { clearError, clearFieldError, resetAuth } = signinSlice.actions
 export default signinSlice.reducer
 
 // Selectors

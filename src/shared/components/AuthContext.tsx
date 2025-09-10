@@ -1,11 +1,13 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useAppDispatch } from '@/shared/store/hook' // Add this import
 import {
   apiClient,
   tokenUtils,
   UserDetailResponse,
   setGlobalLogoutHandler
 } from '@/shared/api/config'
+import { clearError, resetAuth } from '@/features/auth/state/signinSlice' // Add these imports
 
 interface AuthContextType {
   user: UserDetailResponse | null
@@ -25,6 +27,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const dispatch = useAppDispatch() // Add this
 
   const fetchUser = async () => {
     try {
@@ -67,6 +70,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await tokenUtils.clearAllTokens()
       setUser(null)
       setError(null)
+
+      // Clear Redux auth state
+      dispatch(clearError())
+      dispatch(resetAuth()) // You'll need to create this action
     } catch (err) {
       console.error('Failed to logout:', err)
     }
@@ -77,10 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setGlobalLogoutHandler(() => {
       setUser(null)
       setError('Session expired. Please login again.')
+      // Clear Redux state on session expiry
+      dispatch(clearError())
+      dispatch(resetAuth())
     })
 
     fetchUser()
-  }, [])
+  }, [dispatch])
 
   const value: AuthContextType = {
     user,

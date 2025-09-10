@@ -1,9 +1,9 @@
-// components/SignInForm.tsx (updated with AuthContext refresh)
+// components/SignInForm.tsx (updated with proper navigation)
 import { useState, ChangeEvent, FormEvent, useEffect } from 'react'
-import { useRouter } from 'next/router'
 import { AlertCircle } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
-import { useAuth } from '@/shared/components/AuthContext' // Add this import
+import { useAuth } from '@/shared/components/AuthContext'
+import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
 import {
   signIn,
   selectIsLoading,
@@ -25,8 +25,7 @@ interface ValidationErrors {
 
 const SignInForm: React.FC = () => {
   const dispatch = useAppDispatch()
-  const router = useRouter()
-  const { refreshUser } = useAuth() // Add this to refresh AuthContext
+  const { refreshUser, user } = useAuth() // Added user to check auth state
 
   // Redux state
   const isLoading = useAppSelector(selectIsLoading)
@@ -41,12 +40,13 @@ const SignInForm: React.FC = () => {
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
 
-  // Redirect to dashboard if authenticated
+  // Redirect to dashboard if authenticated (either from Redux or AuthContext)
   useEffect(() => {
-    if (isAuthenticated) {
-      window.location.hash = '#/ai-code-assistant'
+    if (isAuthenticated || user) {
+      // Navigate to AI assistant after successful sign in
+      navigateTo(ROUTES.AI_CODE_ASSISTANT)
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user])
 
   // Clear general errors when component unmounts or when starting a new sign in
   useEffect(() => {
@@ -90,7 +90,7 @@ const SignInForm: React.FC = () => {
     return errors
   }
 
-  const handleSubmit = async (e: FormEvent<HTMLFormForm>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const errors = validateForm()
@@ -210,9 +210,9 @@ const SignInForm: React.FC = () => {
 
           <div className="text-center">
             <p className="text-sm">
-              Don&apos;t have an account?
+              Don&apos;t have an account?{' '}
               <button
-                onClick={() => router.push('/sign-up')}
+                onClick={() => navigateTo(ROUTES.SIGNUP)}
                 className="link link-primary"
                 disabled={isLoading}
               >
