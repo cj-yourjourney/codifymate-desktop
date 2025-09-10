@@ -1,6 +1,6 @@
 {
   "name": "desktop",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "main": "dist-electron/main.js",
   "scripts": {
@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.codifymate.desktop",
     "productName": "CodifyMate",
+    "artifactName": "${productName}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },

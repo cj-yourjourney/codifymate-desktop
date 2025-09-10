@@ -1,6 +1,7 @@
 {
   "appId": "com.codifymate.desktop",
   "productName": "CodifyMate",
+  "artifactName": "${productName}-${arch}.${ext}",
   "directories": {
     "output": "release"
   },
