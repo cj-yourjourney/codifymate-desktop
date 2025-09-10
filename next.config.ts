@@ -1,7 +1,8 @@
-/** @type {import('next').NextConfig} */
+import type { NextConfig } from 'next'
+
 const isProd = process.env.NODE_ENV === 'production'
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: 'export',
   distDir: 'out',
   trailingSlash: true,
@@ -9,14 +10,16 @@ const nextConfig = {
     unoptimized: true
   },
   assetPrefix: isProd ? './' : undefined,
-  basePath: '',
-  // Add this for Electron production builds
+
   ...(isProd && {
-    // Use hash router for production Electron builds
-    experimental: {
-      appDir: false
+    // 👇 use `any` to avoid type issues
+    webpack: (config: any) => {
+      if (config.output) {
+        config.output.publicPath = './'
+      }
+      return config
     }
   })
 }
 
-module.exports = nextConfig
+export default nextConfig

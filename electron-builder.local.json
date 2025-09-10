@@ -15,7 +15,7 @@
     "identity": null,
     "hardenedRuntime": false,
     "gatekeeperAssess": false,
-    "target": "dmg"
+    "target": "zip"
   },
   "win": {
     "target": "nsis"

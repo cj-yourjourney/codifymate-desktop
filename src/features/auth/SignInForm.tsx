@@ -42,7 +42,7 @@ const SignInForm: React.FC = () => {
   // Redirect to dashboard if authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/ai-code-assistant')
+      window.location.hash = '#/ai-code-assistant'
     }
   }, [isAuthenticated, router])
 
