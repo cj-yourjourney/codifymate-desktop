@@ -39,7 +39,7 @@ const SignUpForm: React.FC = () => {
   useEffect(() => {
     if (isRegistered) {
       // Redirect to login or dashboard after successful registration
-      router.push('/ai-code-assistant')
+      window.location.hash = '#/ai-code-assistant'
       console.log('Registration successful! Tokens stored in secure storage.')
     }
   }, [isRegistered, router])

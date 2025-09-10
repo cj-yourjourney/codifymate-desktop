@@ -7,8 +7,9 @@ import Layout from '@/shared/components/Layout'
 import { AuthProvider } from '@/shared/components/AuthContext'
 import { useEffect, useState } from 'react'
 
-// Import the page you want to render for hash route
+// Import pages for hash routing
 import AiCodeAssistant from './ai-code-assistant'
+// import PaymentPage from './payment'  <-- Uncomment when you create the Payment page
 
 export default function App({ Component, pageProps }: AppProps) {
   const [currentPage, setCurrentPage] = useState<string>('signin')
@@ -27,9 +28,14 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Decide which page to render based on hash
   let RenderedComponent = Component
+
   if (currentPage === 'ai-code-assistant') {
     RenderedComponent = AiCodeAssistant
   }
+  // Example placeholder for future Payment page
+  // else if (currentPage === 'payment') {
+  //   RenderedComponent = PaymentPage
+  // }
 
   return (
     <Provider store={store}>
