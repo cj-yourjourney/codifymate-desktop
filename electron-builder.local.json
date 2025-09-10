@@ -1,0 +1,26 @@
+{
+  "appId": "com.codifymate.desktop",
+  "productName": "CodifyMate",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "out/**/*",
+    "dist-electron/**/*",
+    "node_modules/**/*",
+    "package.json",
+    "!**/*.map"
+  ],
+  "mac": {
+    "identity": null,
+    "hardenedRuntime": false,
+    "gatekeeperAssess": false,
+    "target": "dmg"
+  },
+  "win": {
+    "target": "nsis"
+  },
+  "linux": {
+    "target": "AppImage"
+  }
+}
