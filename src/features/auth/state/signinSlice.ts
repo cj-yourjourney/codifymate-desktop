@@ -49,19 +49,6 @@ export const signIn = createAsyncThunk<
     try {
       await window.electronAPI.storeToken('access_token', tokens.access)
       await window.electronAPI.storeToken('refresh_token', tokens.refresh)
-
-      // Console.log tokens for testing using getToken method
-      const storedAccessToken = await window.electronAPI.getToken(
-        'access_token'
-      )
-      const storedRefreshToken = await window.electronAPI.getToken(
-        'refresh_token'
-      )
-
-      console.log('=== Tokens stored successfully ===')
-      console.log('Access Token:', storedAccessToken)
-      console.log('Refresh Token:', storedRefreshToken)
-      console.log('================================')
     } catch (storageError) {
       console.warn('Failed to store tokens in secure storage:', storageError)
       throw storageError // Reject the action if storage fails

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { Code2 } from 'lucide-react'
+import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
 
 export default function Home() {
   const [appVersion, setAppVersion] = useState<string>('')
@@ -29,18 +29,18 @@ export default function Home() {
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-8">
-          <Link
-            href="/sign-up"
+          <button
+            onClick={() => navigateTo(ROUTES.SIGNUP)}
             className="btn btn-primary w-full shadow-sm hover:shadow-md transition-shadow"
           >
             Sign Up
-          </Link>
-          <Link
-            href="/sign-in"
+          </button>
+          <button
+            onClick={() => navigateTo(ROUTES.SIGNIN)}
             className="btn btn-outline w-full hover:shadow-sm transition-shadow"
           >
             Sign In
-          </Link>
+          </button>
         </div>
 
         {/* Version Info */}

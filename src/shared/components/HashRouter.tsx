@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/components/AuthContext'
 import AiCodeAssistant from '@/pages/ai-code-assistant'
 import SignInForm from '@/features/auth/SignInForm'
 import SignUpForm from '@/features/auth/SignUpForm'
+import IndexPage from '@/pages/index' // ✅ import index page
 
 interface RouteConfig {
   [key: string]: ComponentType<any>
@@ -19,19 +20,16 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
   const [currentPage, setCurrentPage] = useState<string>('')
   const { user, loading } = useAuth()
 
-  // Define your routes here - Fixed route names to match ROUTES constants
+  // ✅ routes mapping
   const routes: RouteConfig = {
+    '': IndexPage, // root → index.tsx
     'sign-in': SignInForm,
-    '': SignInForm, // Default route
     'sign-up': SignUpForm,
     'ai-code-assistant': AiCodeAssistant
   }
 
-  // Define which routes require authentication
   const protectedRoutes = ['ai-code-assistant']
-
-  // Define which routes should redirect authenticated users
-  const publicOnlyRoutes = ['sign-in', 'sign-up', '']
+  const publicOnlyRoutes = ['sign-in', 'sign-up']
 
   useEffect(() => {
     const checkHash = () => {
@@ -39,44 +37,31 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
       setCurrentPage(hash || '')
     }
 
-    // Listen for hash changes
     window.addEventListener('hashchange', checkHash)
-
-    // Check initial hash on mount
     checkHash()
 
-    // Cleanup listener on unmount
     return () => window.removeEventListener('hashchange', checkHash)
   }, [])
 
-  // Handle route protection and redirection
-  useEffect(() => {
-    if (loading) return // Don't do anything while auth is loading
+ useEffect(() => {
+   if (loading) return
+   const currentRoute = currentPage || ''
 
-    const currentRoute = currentPage || ''
+   if (user && publicOnlyRoutes.includes(currentRoute)) {
+     window.location.hash = '#/ai-code-assistant'
+     return
+   }
 
-    // If user is authenticated and tries to access public-only routes, redirect to ai-code-assistant
-    if (user && publicOnlyRoutes.includes(currentRoute)) {
-      window.location.hash = '#/ai-code-assistant'
-      return
-    }
+   if (!user && protectedRoutes.includes(currentRoute)) {
+     // 👇 instead of always redirecting to sign-in,
+     // send them back to index if they just logged out
+     window.location.hash = '#/'
+     return
+   }
+ }, [user, loading, currentPage])
 
-    // If user is not authenticated and tries to access protected routes, redirect to sign-in
-    if (!user && protectedRoutes.includes(currentRoute)) {
-      window.location.hash = '#/sign-in'
-      return
-    }
 
-    // If user is not authenticated and no specific route, go to sign-in
-    if (!user && currentRoute === '') {
-      window.location.hash = '#/sign-in'
-      return
-    }
-  }, [user, loading, currentPage])
-
-  // Get the component for current route
   const getCurrentComponent = (): ComponentType<any> => {
-    // If still loading auth, show loading state
     if (loading) {
       return () => (
         <div className="min-h-screen bg-base-100 flex items-center justify-center">
@@ -91,28 +76,27 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
     const route = currentPage || ''
     const RouteComponent = routes[route]
 
-    if (RouteComponent) {
-      return RouteComponent
-    }
+    if (RouteComponent) return RouteComponent
 
-    // Fallback to sign-in for unknown routes
-    return routes['sign-in'] || SignInForm
+    return fallbackComponent || SignInForm
   }
 
   const CurrentComponent = getCurrentComponent()
-
   return <CurrentComponent />
 }
 
 export default HashRouter
 
-// Export a utility function for programmatic navigation
 export const navigateTo = (route: string) => {
-  window.location.hash = `#/${route}`
+  if (route === '') {
+    window.location.hash = '#/' // ✅ ensures root works
+  } else {
+    window.location.hash = `#/${route}`
+  }
 }
 
-// Export route constants for type safety - Fixed to match route definitions
 export const ROUTES = {
+  INDEX: '',
   SIGNIN: 'sign-in',
   SIGNUP: 'sign-up',
   AI_CODE_ASSISTANT: 'ai-code-assistant'

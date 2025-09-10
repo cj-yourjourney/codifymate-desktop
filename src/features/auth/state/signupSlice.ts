@@ -52,16 +52,6 @@ export const registerUser = createAsyncThunk<
         await window.electronAPI.storeToken('access_token', data.access)
         await window.electronAPI.storeToken('refresh_token', data.refresh)
 
-        console.log('=== Registration tokens stored successfully ===')
-        console.log(
-          'Access Token:',
-          await window.electronAPI.getToken('access_token')
-        )
-        console.log(
-          'Refresh Token:',
-          await window.electronAPI.getToken('refresh_token')
-        )
-        console.log('===============================================')
       } catch (storageError) {
         console.warn('Failed to store tokens after registration:', storageError)
         // Don't fail the registration if token storage fails

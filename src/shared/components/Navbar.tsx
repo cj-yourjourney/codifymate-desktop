@@ -1,21 +1,23 @@
 // src/components/layout/Navbar.tsx
 import React from 'react'
 import { useAuth } from './AuthContext'
-import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
+// import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
 
 const Navbar: React.FC = () => {
   const { user, loading, logout } = useAuth()
 
-  const handleLogout = async () => {
-    try {
-      await logout()
-      // Navigate to sign-in page after logout
-      navigateTo(ROUTES.SIGNIN)
-      console.log('User logged out successfully')
-    } catch (err) {
-      console.error('Logout failed:', err)
-    }
-  }
+ const handleLogout = async () => {
+   try {
+     await logout()
+     // Reset hash BEFORE HashRouter checks protected routes
+     window.location.replace('#/') // ✅ forces hard replace, not push
+     console.log('User logged out successfully')
+   } catch (err) {
+     console.error('Logout failed:', err)
+   }
+ }
+
+
 
   return (
     <div className="navbar bg-base-100 shadow-lg">

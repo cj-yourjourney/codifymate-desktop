@@ -6,7 +6,6 @@ import {
   clearSignupError,
   clearSignupState
 } from './state/signupSlice'
-import { useRouter } from 'next/router'
 import { useAppDispatch, useAppSelector } from '@/shared/store/hook'
 import { useAuth } from '@/shared/components/AuthContext' // Add this import
 import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
@@ -22,7 +21,6 @@ interface ValidationErrors {
 
 const SignUpForm: React.FC = () => {
   const dispatch = useAppDispatch()
-  const router = useRouter()
   const { refreshUser } = useAuth() // Add this to refresh AuthContext
 
   const { isLoading, error, isRegistered } = useAppSelector(
@@ -45,7 +43,7 @@ const SignUpForm: React.FC = () => {
       navigateTo(ROUTES.AI_CODE_ASSISTANT)
       console.log('Registration successful! Tokens stored in secure storage.')
     }
-  }, [isRegistered, router])
+  }, [isRegistered])
 
   useEffect(() => {
     // Clear errors when component mounts
@@ -276,7 +274,7 @@ const SignUpForm: React.FC = () => {
             <p className="text-sm">
               Already have an account?{' '}
               <button
-                onClick={() => router.push('/sign-in')}
+                onClick={() => navigateTo(ROUTES.SIGNIN)}
                 className="link link-primary"
                 disabled={isLoading}
               >
