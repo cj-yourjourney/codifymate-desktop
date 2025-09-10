@@ -7,7 +7,7 @@ import Layout from '@/shared/components/Layout'
 import { AuthProvider } from '@/shared/components/AuthContext'
 import HashRouter from '@/shared/components/HashRouter'
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component }: AppProps) {
   return (
     <Provider store={store}>
       <div className="font-manrope">

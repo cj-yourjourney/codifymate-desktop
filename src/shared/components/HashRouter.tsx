@@ -1,5 +1,5 @@
 // src/shared/components/HashRouter.tsx
-import { useEffect, useState, ComponentType } from 'react'
+import { useEffect, useState, ComponentType, useCallback } from 'react'
 import { useAuth } from '@/shared/components/AuthContext'
 
 // Import pages for routing
@@ -9,11 +9,11 @@ import SignUpForm from '@/features/auth/SignUpForm'
 import IndexPage from '@/pages/index' // ✅ import index page
 
 interface RouteConfig {
-  [key: string]: ComponentType<any>
+  [key: string]: ComponentType<Record<string, unknown>>
 }
 
 interface HashRouterProps {
-  fallbackComponent?: ComponentType<any>
+  fallbackComponent?: ComponentType<Record<string, unknown>>
 }
 
 const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
@@ -43,27 +43,28 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
     return () => window.removeEventListener('hashchange', checkHash)
   }, [])
 
- useEffect(() => {
-   if (loading) return
-   const currentRoute = currentPage || ''
+  useEffect(() => {
+    if (loading) return
+    const currentRoute = currentPage || ''
 
-   if (user && publicOnlyRoutes.includes(currentRoute)) {
-     window.location.hash = '#/ai-code-assistant'
-     return
-   }
+    if (user && publicOnlyRoutes.includes(currentRoute)) {
+      window.location.hash = '#/ai-code-assistant'
+      return
+    }
 
-   if (!user && protectedRoutes.includes(currentRoute)) {
-     // 👇 instead of always redirecting to sign-in,
-     // send them back to index if they just logged out
-     window.location.hash = '#/'
-     return
-   }
- }, [user, loading, currentPage])
+    if (!user && protectedRoutes.includes(currentRoute)) {
+      // 👇 instead of always redirecting to sign-in,
+      // send them back to index if they just logged out
+      window.location.hash = '#/'
+      return
+    }
+  }, [user, loading, currentPage, protectedRoutes, publicOnlyRoutes])
 
-
-  const getCurrentComponent = (): ComponentType<any> => {
+  const getCurrentComponent = useCallback((): ComponentType<
+    Record<string, unknown>
+  > => {
     if (loading) {
-      return () => (
+      const LoadingComponent: ComponentType<Record<string, unknown>> = () => (
         <div className="min-h-screen bg-base-100 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <span className="loading loading-spinner loading-lg"></span>
@@ -71,6 +72,8 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
           </div>
         </div>
       )
+      LoadingComponent.displayName = 'LoadingComponent'
+      return LoadingComponent
     }
 
     const route = currentPage || ''
@@ -79,7 +82,7 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
     if (RouteComponent) return RouteComponent
 
     return fallbackComponent || SignInForm
-  }
+  }, [loading, currentPage, routes, fallbackComponent])
 
   const CurrentComponent = getCurrentComponent()
   return <CurrentComponent />

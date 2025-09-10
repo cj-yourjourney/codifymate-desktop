@@ -27,7 +27,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Action Buttons */}
+        
         <div className="space-y-3 mb-8">
           <button
             onClick={() => navigateTo(ROUTES.SIGNUP)}
