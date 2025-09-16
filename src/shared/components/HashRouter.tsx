@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/components/AuthContext'
 import AiCodeAssistant from '@/pages/ai-code-assistant'
 import SignInForm from '@/features/auth/SignInForm'
 import SignUpForm from '@/features/auth/SignUpForm'
+import OnboardingComponent from '@/pages/on-boarding'
 import IndexPage from '@/pages/index' // ✅ import index page
 
 interface RouteConfig {
@@ -25,6 +26,7 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
     '': IndexPage, // root → index.tsx
     'sign-in': SignInForm,
     'sign-up': SignUpForm,
+    'on-boarding':OnboardingComponent,
     'ai-code-assistant': AiCodeAssistant
   }
 
@@ -102,6 +104,7 @@ export const ROUTES = {
   INDEX: '',
   SIGNIN: 'sign-in',
   SIGNUP: 'sign-up',
+  ON_BOARDING: 'on-boarding',
   AI_CODE_ASSISTANT: 'ai-code-assistant'
 } as const
 

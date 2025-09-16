@@ -27,7 +27,6 @@ export default function Home() {
           </p>
         </div>
 
-        
         <div className="space-y-3 mb-8">
           <button
             onClick={() => navigateTo(ROUTES.SIGNUP)}
@@ -37,6 +36,12 @@ export default function Home() {
           </button>
           <button
             onClick={() => navigateTo(ROUTES.SIGNIN)}
+            className="btn btn-outline w-full hover:shadow-sm transition-shadow"
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => navigateTo(ROUTES.ON_BOARDING)}
             className="btn btn-outline w-full hover:shadow-sm transition-shadow"
           >
             Sign In
