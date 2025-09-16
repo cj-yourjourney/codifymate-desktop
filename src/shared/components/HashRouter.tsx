@@ -31,7 +31,7 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
   }
 
   const protectedRoutes = ['ai-code-assistant']
-  const publicOnlyRoutes = ['sign-in', 'sign-up']
+  const publicOnlyRoutes = ['sign-in', 'sign-up', 'on-boarding']
 
   useEffect(() => {
     const checkHash = () => {
