@@ -26,8 +26,8 @@ export const CompletionMessage: React.FC<CompletionMessageProps> = ({
         <h4 className="font-medium text-sm">Tutorial Complete!</h4>
       </div>
       <p className="text-xs text-green-100 mb-3">
-        You've learned how to use the AI Code Assistant. Ready to build your own
-        features?
+        You&apos;ve learned how to use the AI Code Assistant. Ready to build
+        your own features?
       </p>
 
       {/* Action buttons */}

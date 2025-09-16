@@ -1,26 +1,31 @@
 // hooks/useOnboardingState.ts
 import { useState } from 'react'
+import { MockAssessment, OnboardingStep } from '../types/onboarding'
 
 export const useOnboardingState = () => {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [showTooltip, setShowTooltip] = useState(true)
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(1)
+  const [showTooltip, setShowTooltip] = useState(false)
   const [userPrompt, setUserPrompt] = useState('')
   const [isAssessing, setIsAssessing] = useState(false)
-  const [assessment, setAssessment] = useState(null)
+
+  const [assessment, setAssessment] = useState<MockAssessment | null>(null)
+
   const [projectPath, setProjectPath] = useState('')
-  const [selectedFiles, setSelectedFiles] = useState([])
-  const [expandedFiles, setExpandedFiles] = useState(new Set(['0']))
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
+  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set())
   const [refinePrompt, setRefinePrompt] = useState('')
   const [currentAnimation, setCurrentAnimation] = useState(0)
 
   const resetState = () => {
     setCurrentStep(1)
+    setShowTooltip(false)
     setUserPrompt('')
+    setIsAssessing(false)
     setAssessment(null)
     setProjectPath('')
     setSelectedFiles([])
+    setExpandedFiles(new Set())
     setRefinePrompt('')
-    setExpandedFiles(new Set(['0']))
     setCurrentAnimation(0)
   }
 

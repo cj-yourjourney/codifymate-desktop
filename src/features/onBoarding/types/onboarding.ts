@@ -1,8 +1,12 @@
 // types/onboarding.ts
+
+import { ReactNode } from 'react'
+import { LucideIcon } from 'lucide-react'
+
 export interface Step {
   id: number
   title: string
-  icon: any
+  icon: LucideIcon
 }
 
 export interface MockAssessment {
@@ -32,3 +36,6 @@ export interface Tooltip {
 }
 
 export type StepStatus = 'active' | 'completed' | 'available'
+
+// Add this new type for valid onboarding step numbers
+export type OnboardingStep = 1 | 2 | 3

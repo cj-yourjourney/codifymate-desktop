@@ -10,7 +10,7 @@ interface OnboardingStep1Props {
   isAssessing: boolean
   setIsAssessing: (assessing: boolean) => void
   assessment: MockAssessment | null
-  setAssessment: (assessment: MockAssessment | null) => void
+  setAssessment: React.Dispatch<React.SetStateAction<MockAssessment | null>> // ✅ fix
   currentAnimation: number
   setCurrentAnimation: (animation: number) => void
   onContinue: () => void

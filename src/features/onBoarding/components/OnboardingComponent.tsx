@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { useOnboardingState } from '../hooks/useOnboardingState'
 import { tooltips } from '../constants/mockData'
@@ -9,6 +8,7 @@ import { CompletionMessage } from './CompletionMessage'
 import { OnboardingStep1 } from './steps/OnboardingStep1'
 import { OnboardingStep2 } from './steps/OnboardingStep2'
 import { OnboardingStep3 } from './steps/OnboardingStep3'
+import { OnboardingStep } from '../types/onboarding'
 
 const OnboardingComponent: React.FC = () => {
   const {
@@ -36,7 +36,10 @@ const OnboardingComponent: React.FC = () => {
   } = useOnboardingState()
 
   const handleSkip = () => {
-    setCurrentStep(currentStep < 3 ? currentStep + 1 : 1)
+    // Fix: Properly type cast the next step
+    const nextStep: OnboardingStep =
+      currentStep < 3 ? ((currentStep + 1) as OnboardingStep) : 1
+    setCurrentStep(nextStep)
   }
 
   const handleShowTooltip = () => {

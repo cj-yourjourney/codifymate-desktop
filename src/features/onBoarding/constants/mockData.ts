@@ -1,5 +1,10 @@
 // constants/mockData.ts
-import { MockAssessment, MockGeneratedCode } from '../types/onboarding'
+import {
+  MockAssessment,
+  MockGeneratedCode,
+  Tooltip,
+  OnboardingStep
+} from '../types/onboarding'
 
 export const mockAssessment: MockAssessment = {
   score: 8,
@@ -186,7 +191,8 @@ export default LoginPage`
   ]
 }
 
-export const tooltips = {
+// Fix: Properly type the tooltips object
+export const tooltips: Record<OnboardingStep, Tooltip> = {
   1: {
     title: 'Write a Specific Feature Request',
     content:

@@ -1,5 +1,5 @@
 // src/shared/components/HashRouter.tsx
-import { useEffect, useState, ComponentType, useCallback } from 'react'
+import { useEffect, useState, ComponentType, useCallback, useMemo } from 'react'
 import { useAuth } from '@/shared/components/AuthContext'
 
 // Import pages for routing
@@ -21,17 +21,24 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
   const [currentPage, setCurrentPage] = useState<string>('')
   const { user, loading } = useAuth()
 
-  // ✅ routes mapping
-  const routes: RouteConfig = {
-    '': IndexPage, // root → index.tsx
-    'sign-in': SignInForm,
-    'sign-up': SignUpForm,
-    'on-boarding':OnboardingComponent,
-    'ai-code-assistant': AiCodeAssistant
-  }
+  // ✅ Memoize routes so it doesn't re-create each render
+  const routes: RouteConfig = useMemo(
+    () => ({
+      '': IndexPage,
+      'sign-in': SignInForm,
+      'sign-up': SignUpForm,
+      'on-boarding': OnboardingComponent,
+      'ai-code-assistant': AiCodeAssistant
+    }),
+    []
+  )
 
-  const protectedRoutes = ['ai-code-assistant']
-  const publicOnlyRoutes = ['sign-in', 'sign-up', 'on-boarding']
+  // ✅ Memoize route lists
+  const protectedRoutes = useMemo(() => ['ai-code-assistant'], [])
+  const publicOnlyRoutes = useMemo(
+    () => ['sign-in', 'sign-up', 'on-boarding'],
+    []
+  )
 
   useEffect(() => {
     const checkHash = () => {
@@ -55,8 +62,6 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
     }
 
     if (!user && protectedRoutes.includes(currentRoute)) {
-      // 👇 instead of always redirecting to sign-in,
-      // send them back to index if they just logged out
       window.location.hash = '#/'
       return
     }
@@ -92,12 +97,9 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
 
 export default HashRouter
 
+// ✅ keep navigateTo helper + constants
 export const navigateTo = (route: string) => {
-  if (route === '') {
-    window.location.hash = '#/' // ✅ ensures root works
-  } else {
-    window.location.hash = `#/${route}`
-  }
+  window.location.hash = route === '' ? '#/' : `#/${route}`
 }
 
 export const ROUTES = {

@@ -10,13 +10,13 @@ import {
   Home,
   X
 } from 'lucide-react'
-import { Step, StepStatus } from '../types/onboarding'
+import { Step, OnboardingStep } from '../types/onboarding'
 import { getStepStatus } from '../utils/stepUtils'
 import { navigateTo, ROUTES } from '@/shared/components/HashRouter'
 
 interface OnboardingHeaderProps {
-  currentStep: number
-  setCurrentStep: (step: number) => void
+  currentStep: OnboardingStep
+  setCurrentStep: (step: OnboardingStep) => void
   onShowTooltip: () => void
   onSkip: () => void
 }
@@ -35,6 +35,13 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
 }) => {
   const handleGoHome = () => {
     navigateTo(ROUTES.INDEX)
+  }
+
+  const handleStepClick = (stepId: number) => {
+    // Type guard to ensure we only pass valid OnboardingStep values
+    if (stepId === 1 || stepId === 2 || stepId === 3) {
+      setCurrentStep(stepId as OnboardingStep)
+    }
   }
 
   return (
@@ -94,7 +101,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
             return (
               <div key={step.id} className="flex items-center">
                 <button
-                  onClick={() => setCurrentStep(step.id)}
+                  onClick={() => handleStepClick(step.id)}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition ${
                     status === 'active'
                       ? 'bg-blue-100 text-blue-700 font-medium'
