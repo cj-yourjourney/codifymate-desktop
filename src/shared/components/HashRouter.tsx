@@ -1,11 +1,12 @@
 // src/shared/components/HashRouter.tsx
-import { useEffect, useState, ComponentType, useCallback } from 'react'
+import { useEffect, useState, ComponentType, useCallback, useMemo } from 'react'
 import { useAuth } from '@/shared/components/AuthContext'
 
 // Import pages for routing
 import AiCodeAssistant from '@/pages/ai-code-assistant'
 import SignInForm from '@/features/auth/SignInForm'
 import SignUpForm from '@/features/auth/SignUpForm'
+import OnboardingComponent from '@/pages/on-boarding'
 import IndexPage from '@/pages/index' // ✅ import index page
 
 interface RouteConfig {
@@ -20,16 +21,24 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
   const [currentPage, setCurrentPage] = useState<string>('')
   const { user, loading } = useAuth()
 
-  // ✅ routes mapping
-  const routes: RouteConfig = {
-    '': IndexPage, // root → index.tsx
-    'sign-in': SignInForm,
-    'sign-up': SignUpForm,
-    'ai-code-assistant': AiCodeAssistant
-  }
+  // ✅ Memoize routes so it doesn't re-create each render
+  const routes: RouteConfig = useMemo(
+    () => ({
+      '': IndexPage,
+      'sign-in': SignInForm,
+      'sign-up': SignUpForm,
+      'on-boarding': OnboardingComponent,
+      'ai-code-assistant': AiCodeAssistant
+    }),
+    []
+  )
 
-  const protectedRoutes = ['ai-code-assistant']
-  const publicOnlyRoutes = ['sign-in', 'sign-up']
+  // ✅ Memoize route lists
+  const protectedRoutes = useMemo(() => ['ai-code-assistant'], [])
+  const publicOnlyRoutes = useMemo(
+    () => ['sign-in', 'sign-up', 'on-boarding'],
+    []
+  )
 
   useEffect(() => {
     const checkHash = () => {
@@ -53,8 +62,6 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
     }
 
     if (!user && protectedRoutes.includes(currentRoute)) {
-      // 👇 instead of always redirecting to sign-in,
-      // send them back to index if they just logged out
       window.location.hash = '#/'
       return
     }
@@ -90,18 +97,16 @@ const HashRouter: React.FC<HashRouterProps> = ({ fallbackComponent }) => {
 
 export default HashRouter
 
+// ✅ keep navigateTo helper + constants
 export const navigateTo = (route: string) => {
-  if (route === '') {
-    window.location.hash = '#/' // ✅ ensures root works
-  } else {
-    window.location.hash = `#/${route}`
-  }
+  window.location.hash = route === '' ? '#/' : `#/${route}`
 }
 
 export const ROUTES = {
   INDEX: '',
   SIGNIN: 'sign-in',
   SIGNUP: 'sign-up',
+  ON_BOARDING: 'on-boarding',
   AI_CODE_ASSISTANT: 'ai-code-assistant'
 } as const
 
